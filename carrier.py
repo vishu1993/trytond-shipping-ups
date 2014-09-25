@@ -51,7 +51,7 @@ class Carrier:
         display name of service
         """
         return "%s %s" % (
-            self.carrier_product.code, service.name
+            self.carrier_product.code, service.display_name or service.name
         )
 
     def get_sale_price(self):
@@ -92,9 +92,19 @@ class UPSService(ModelSQL, ModelView):
     __name__ = 'ups.service'
 
     active = fields.Boolean('Active', select=True)
-    name = fields.Char('Name', required=True, select=True)
-    code = fields.Char('Service Code', required=True, select=True)
+    name = fields.Char('Name', required=True, select=True, readonly=True)
+    code = fields.Char(
+        'Service Code', required=True, select=True, readonly=True
+    )
+    display_name = fields.Char('Display Name', select=True)
 
     @staticmethod
     def default_active():
         return True
+
+    @staticmethod
+    def check_xml_record(records, values):
+        if 'display_name' in values and len(values) == 1:
+            # Allow editing if display_name is the only key in values
+            return True
+        return False
