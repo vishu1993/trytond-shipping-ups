@@ -6,7 +6,6 @@
     :license: BSD, see LICENSE for more details.
 """
 from decimal import Decimal
-import math
 
 from lxml.builder import E
 from ups.rating_package import RatingService
@@ -16,7 +15,7 @@ from trytond.pool import PoolMeta, Pool
 from trytond.transaction import Transaction
 from trytond.pyson import Eval
 
-__all__ = ['Configuration', 'Sale', 'SaleLine']
+__all__ = ['Configuration', 'Sale']
 __metaclass__ = PoolMeta
 
 
@@ -67,6 +66,19 @@ class Sale:
         UPS_PACKAGE_TYPES, 'Package Content Type'
     )
     ups_saturday_delivery = fields.Boolean("Is Saturday Delivery")
+
+    def _get_weight_uom(self):
+        """
+        Returns uom for ups
+        """
+        UPSConfiguration = Pool().get('ups.configuration')
+
+        weight_uom = UPSConfiguration(1).weight_uom
+
+        if self.is_ups_shipping and weight_uom:
+            return weight_uom
+
+        return super(Sale, self)._get_weight_uom()
 
     @classmethod
     def __setup__(cls):
@@ -206,9 +218,7 @@ class Sale:
         )
 
         package_weight = RatingService.package_weight_type(
-            Weight=str(sum(map(
-                lambda line: line.get_weight_for_ups(), self.lines
-            ))),
+            Weight=str(self.package_weight),
             Code=ups_config.weight_uom_code,
         )
         package_service_options = RatingService.package_service_options_type(
@@ -401,55 +411,3 @@ class Sale:
             self.carrier.carrier_cost_method == 'ups'
 
         return res
-
-
-class SaleLine:
-    'Sale Line'
-    __name__ = 'sale.line'
-
-    @classmethod
-    def __setup__(cls):
-        super(SaleLine, cls).__setup__()
-        cls._error_messages.update({
-            'weight_required': 'Weight is missing on the product %s',
-        })
-
-    def get_weight_for_ups(self):
-        """
-        Returns weight as required for ups.
-        """
-        ProductUom = Pool().get('product.uom')
-        UPSConfiguration = Pool().get('ups.configuration')
-
-        ups_config = UPSConfiguration(1)
-        if not self.product or self.product.type == 'service' \
-                or self.quantity <= 0:
-            return Decimal(0)
-
-        if not self.product.weight:
-            self.raise_user_error(
-                'weight_required',
-                error_args=(self.product.name,)
-            )
-
-        # Find the quantity in the default uom of the product as the weight
-        # is for per unit in that uom
-        if self.unit != self.product.default_uom:
-            quantity = ProductUom.compute_qty(
-                self.unit,
-                self.quantity,
-                self.product.default_uom
-            )
-        else:
-            quantity = self.quantity
-
-        weight = float(self.product.weight) * quantity
-
-        # Convert weights according to UPS
-        if self.product.weight_uom != ups_config.weight_uom:
-            weight = ProductUom.compute_qty(
-                self.product.weight_uom,
-                weight,
-                ups_config.weight_uom
-            )
-        return Decimal(math.ceil(weight))

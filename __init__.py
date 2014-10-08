@@ -8,7 +8,7 @@
 from trytond.pool import Pool
 from party import Address
 from carrier import Carrier, UPSService
-from sale import Configuration, Sale, SaleLine
+from sale import Configuration, Sale
 from stock import (
     ShipmentOut, StockMove, GenerateUPSLabelMessage, GenerateUPSLabel,
 )
@@ -18,7 +18,6 @@ from configuration import UPSConfiguration
 def register():
     Pool.register(
         Address,
-        SaleLine,
         Carrier,
         UPSService,
         UPSConfiguration,

@@ -7,7 +7,6 @@
 """
 from decimal import Decimal
 import base64
-import math
 
 from ups.shipping_package import ShipmentConfirm, ShipmentAccept
 from ups.base import PyUPSException
@@ -49,7 +48,19 @@ class ShipmentOut:
     ups_saturday_delivery = fields.Boolean(
         "Is Saturday Delivery", states=STATES, depends=['state']
     )
-    tracking_number = fields.Char('Tracking Number', states=STATES)
+
+    def _get_weight_uom(self):
+        """
+        Returns uom for ups
+        """
+        UPSConfiguration = Pool().get('ups.configuration')
+
+        weight_uom = UPSConfiguration(1).weight_uom
+
+        if self.is_ups_shipping and weight_uom:
+            return weight_uom
+
+        return super(ShipmentOut, self)._get_weight_uom()
 
     @staticmethod
     def default_ups_package_type():
@@ -106,9 +117,7 @@ class ShipmentOut:
         )  # FIXME: Support multiple packaging type
 
         package_weight = ShipmentConfirm.package_weight_type(
-            Weight=str(sum(map(
-                lambda move: move.get_weight_for_ups(), self.outgoing_moves
-            ))),
+            Weight=str(self.package_weight),
             Code=ups_config.weight_uom_code,
         )
         package_service_options = ShipmentConfirm.package_service_options_type(
@@ -368,14 +377,6 @@ class StockMove:
     "Stock move"
     __name__ = "stock.move"
 
-    @classmethod
-    def __setup__(cls):
-        super(StockMove, cls).__setup__()
-        cls._error_messages.update({
-            'weight_required':
-                'Weight for product %s in stock move is missing',
-        })
-
     def get_monetary_value_for_ups(self):
         """
         Returns monetary_value as required for ups
@@ -394,42 +395,3 @@ class StockMove:
             quantity = self.quantity
 
         return Decimal(self.product.list_price) * Decimal(quantity)
-
-    def get_weight_for_ups(self):
-        """
-        Returns weight as required for ups
-        """
-        ProductUom = Pool().get('product.uom')
-        UPSConfiguration = Pool().get('ups.configuration')
-
-        ups_config = UPSConfiguration(1)
-        if self.product.type == 'service':
-            return Decimal(0)
-
-        if not self.product.weight:
-            self.raise_user_error(
-                'weight_required',
-                error_args=(self.product.name,)
-            )
-
-        # Find the quantity in the default uom of the product as the weight
-        # is for per unit in that uom
-        if self.uom != self.product.default_uom:
-            quantity = ProductUom.compute_qty(
-                self.uom,
-                self.quantity,
-                self.product.default_uom
-            )
-        else:
-            quantity = self.quantity
-
-        weight = float(self.product.weight) * quantity
-
-        # Convert weights according to UPS
-        if self.product.weight_uom != ups_config.weight_uom:
-            weight = ProductUom.compute_qty(
-                self.product.weight_uom,
-                weight,
-                ups_config.weight_uom
-            )
-        return Decimal(math.ceil(weight))
