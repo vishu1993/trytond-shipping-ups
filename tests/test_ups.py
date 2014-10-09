@@ -25,6 +25,7 @@ import trytond.tests.test_tryton
 from trytond.tests.test_tryton import POOL, DB_NAME, USER, CONTEXT
 from trytond.transaction import Transaction
 from trytond.config import CONFIG
+from trytond.error import UserError
 CONFIG['data_path'] = '.'
 
 
@@ -34,29 +35,28 @@ class TestUPS(unittest.TestCase):
 
     def setUp(self):
         trytond.tests.test_tryton.install_module('ups')
-        self.sale = POOL.get('sale.sale')
+        self.Sale = POOL.get('sale.sale')
         self.SaleConfig = POOL.get('sale.configuration')
         self.UPSConfiguration = POOL.get('ups.configuration')
         self.UPSService = POOL.get('ups.service')
-        self.product = POOL.get('product.product')
-        self.uom = POOL.get('product.uom')
-        self.account = POOL.get('account.account')
-        self.category = POOL.get('product.category')
-        self.carrier = POOL.get('carrier')
-        self.party = POOL.get('party.party')
-        self.party_contact = POOL.get('party.contact_mechanism')
-        self.payment_term = POOL.get('account.invoice.payment_term')
-        self.country = POOL.get('country.country')
-        self.country_subdivision = POOL.get('country.subdivision')
-        self.sale = POOL.get('sale.sale')
-        self.party_address = POOL.get('party.address')
-        self.stock_location = POOL.get('stock.location')
-        self.stock_shipment_out = POOL.get('stock.shipment.out')
-        self.currency = POOL.get('currency.currency')
-        self.company = POOL.get('company.company')
-        self.ir_attachment = POOL.get('ir.attachment')
+        self.Product = POOL.get('product.product')
+        self.Uom = POOL.get('product.uom')
+        self.Account = POOL.get('account.account')
+        self.Category = POOL.get('product.category')
+        self.Carrier = POOL.get('carrier')
+        self.Party = POOL.get('party.party')
+        self.PartyContact = POOL.get('party.contact_mechanism')
+        self.PaymentTerm = POOL.get('account.invoice.payment_term')
+        self.Country = POOL.get('country.country')
+        self.CountrySubdivision = POOL.get('country.subdivision')
+        self.PartyAddress = POOL.get('party.address')
+        self.StockLocation = POOL.get('stock.location')
+        self.StockShipmentOut = POOL.get('stock.shipment.out')
+        self.Currency = POOL.get('currency.currency')
+        self.Company = POOL.get('company.company')
+        self.IrAttachment = POOL.get('ir.attachment')
         self.User = POOL.get('res.user')
-        self.template = POOL.get('product.template')
+        self.Template = POOL.get('product.template')
 
         assert 'UPS_LICENSE_NO' in os.environ, \
             "UPS_LICENSE_NO not given. Hint:Use export UPS_LICENSE_NO=<number>"
@@ -172,30 +172,30 @@ class TestUPS(unittest.TestCase):
         """Method to setup defaults
         """
         # Create currency
-        currency, = self.currency.create([{
+        currency, = self.Currency.create([{
             'name': 'United Stated Dollar',
             'code': 'USD',
             'symbol': 'USD',
         }])
-        self.currency.create([{
+        self.Currency.create([{
             'name': 'Indian Rupee',
             'code': 'INR',
             'symbol': 'INR',
         }])
 
-        country_us, = self.country.create([{
+        country_us, = self.Country.create([{
             'name': 'United States',
             'code': 'US',
         }])
 
-        subdivision_florida, = self.country_subdivision.create([{
+        subdivision_florida, = self.CountrySubdivision.create([{
             'name': 'Florida',
             'code': 'US-FL',
             'country': country_us.id,
             'type': 'state'
         }])
 
-        subdivision_california, = self.country_subdivision.create([{
+        subdivision_california, = self.CountrySubdivision.create([{
             'name': 'California',
             'code': 'US-CA',
             'country': country_us.id,
@@ -203,7 +203,7 @@ class TestUPS(unittest.TestCase):
         }])
 
         with Transaction().set_context(company=None):
-            company_party, = self.party.create([{
+            company_party, = self.Party.create([{
                 'name': 'Test Party',
                 'vat_number': '123456',
                 'addresses': [('create', [{
@@ -233,11 +233,11 @@ class TestUPS(unittest.TestCase):
         self.SaleConfig.create([{
             'ups_service_type': self.ups_service.id,
         }])
-        self.company, = self.company.create([{
+        self.company, = self.Company.create([{
             'party': company_party.id,
             'currency': currency.id,
         }])
-        self.party_contact.create([{
+        self.PartyContact.create([{
             'type': 'phone',
             'value': '8005551212',
             'party': self.company.party.id
@@ -256,21 +256,21 @@ class TestUPS(unittest.TestCase):
         self._create_coa_minimal(company=self.company)
         self.payment_term, = self._create_payment_term()
 
-        account_revenue, = self.account.search([
+        account_revenue, = self.Account.search([
             ('kind', '=', 'revenue')
         ])
 
         # Create product category
-        category, = self.category.create([{
+        category, = self.Category.create([{
             'name': 'Test Category',
         }])
 
-        uom_kg, = self.uom.search([('symbol', '=', 'kg')])
-        uom_cm, = self.uom.search([('symbol', '=', 'cm')])
-        uom_pound, = self.uom.search([('symbol', '=', 'lb')])
+        uom_kg, = self.Uom.search([('symbol', '=', 'kg')])
+        uom_cm, = self.Uom.search([('symbol', '=', 'cm')])
+        uom_pound, = self.Uom.search([('symbol', '=', 'lb')])
 
         # Carrier Carrier Product
-        carrier_product_template, = self.template.create([{
+        carrier_product_template, = self.Template.create([{
             'name': 'Test Carrier Product',
             'category': category.id,
             'type': 'service',
@@ -281,13 +281,13 @@ class TestUPS(unittest.TestCase):
             'default_uom': uom_kg,
             'cost_price_method': 'fixed',
             'account_revenue': account_revenue.id,
-            'products': [('create', self.template.default_products())]
+            'products': [('create', self.Template.default_products())]
         }])
 
         carrier_product = carrier_product_template.products[0]
 
         # Create product
-        template, = self.template.create([{
+        template, = self.Template.create([{
             'name': 'Test Product',
             'category': category.id,
             'type': 'goods',
@@ -299,28 +299,28 @@ class TestUPS(unittest.TestCase):
             'account_revenue': account_revenue.id,
             'weight': .5,
             'weight_uom': uom_pound.id,
-            'products': [('create', self.template.default_products())]
+            'products': [('create', self.Template.default_products())]
         }])
 
         self.product = template.products[0]
 
         # Create party
-        carrier_party, = self.party.create([{
+        carrier_party, = self.Party.create([{
             'name': 'Test Party',
         }])
 
         # Create party
-        carrier_party, = self.party.create([{
+        carrier_party, = self.Party.create([{
             'name': 'Test Party',
         }])
 
-        self.carrier, = self.carrier.create([{
+        self.carrier, = self.Carrier.create([{
             'party': carrier_party.id,
             'carrier_product': carrier_product.id,
             'carrier_cost_method': 'ups',
         }])
 
-        self.sale_party, = self.party.create([{
+        self.sale_party, = self.Party.create([{
             'name': 'Test Sale Party',
             'vat_number': '123456',
             'addresses': [('create', [{
@@ -332,7 +332,7 @@ class TestUPS(unittest.TestCase):
                 'subdivision': subdivision_florida.id,
             }])]
         }])
-        self.party_contact.create([{
+        self.PartyContact.create([{
             'type': 'phone',
             'value': '8005763279',
             'party': self.sale_party.id
@@ -347,7 +347,7 @@ class TestUPS(unittest.TestCase):
         with Transaction().set_context(company=self.company.id):
 
             # Create sale order
-            sale, = self.sale.create([{
+            sale, = self.Sale.create([{
                 'reference': 'S-1001',
                 'payment_term': self.payment_term,
                 'party': party.id,
@@ -368,16 +368,16 @@ class TestUPS(unittest.TestCase):
                 ]
             }])
 
-            self.stock_location.write([sale.warehouse], {
+            self.StockLocation.write([sale.warehouse], {
                 'address': self.company.party.addresses[0].id,
             })
 
             # Confirm and process sale order
             self.assertEqual(len(sale.lines), 1)
-            self.sale.quote([sale])
+            self.Sale.quote([sale])
             self.assertEqual(len(sale.lines), 2)
-            self.sale.confirm([sale])
-            self.sale.process([sale])
+            self.Sale.confirm([sale])
+            self.Sale.process([sale])
 
     def test_0010_generate_ups_labels(self):
         """Test case to generate UPS labels.
@@ -387,8 +387,8 @@ class TestUPS(unittest.TestCase):
             # Call method to create sale order
             self.setup_defaults()
 
-            shipment, = self.stock_shipment_out.search([])
-            self.stock_shipment_out.write([shipment], {
+            shipment, = self.StockShipmentOut.search([])
+            self.StockShipmentOut.write([shipment], {
                 'code': str(int(time())),
             })
 
@@ -396,7 +396,7 @@ class TestUPS(unittest.TestCase):
             # There is no tracking number generated
             # And no attachment cerated for labels
             self.assertFalse(shipment.tracking_number)
-            attatchment = self.ir_attachment.search([])
+            attatchment = self.IrAttachment.search([])
             self.assertEqual(len(attatchment), 0)
 
             # Make shipment in packed state.
@@ -409,10 +409,26 @@ class TestUPS(unittest.TestCase):
 
             self.assertTrue(shipment.tracking_number)
             self.assertTrue(
-                self.ir_attachment.search([
+                self.IrAttachment.search([
                     ('resource', '=', 'stock.shipment.out,%s' % shipment.id)
                 ], count=True) > 0
             )
+
+    def test_0025_ups_readonly(self):
+        """
+        Test that UPS service name and code fields are not editable.
+        """
+        with Transaction().start(DB_NAME, USER, context=CONTEXT):
+            self.setup_defaults()
+
+            for argument in [
+                    {'name': 'None'},
+                    {'code': '1234'}
+            ]:
+                self.assertRaises(
+                    UserError, self.ups_service.write,
+                    [self.ups_service], argument
+                )
 
 
 def suite():
