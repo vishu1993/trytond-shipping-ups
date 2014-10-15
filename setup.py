@@ -84,7 +84,9 @@ requires = [
     'pyups'
 ]
 
-MODULE2PREFIX = {}
+MODULE2PREFIX = {
+    'shipping': 'openlabs'
+}
 
 MODULE = "ups"
 PREFIX = "trytond"
