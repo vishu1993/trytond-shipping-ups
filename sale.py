@@ -218,7 +218,7 @@ class Sale:
         )
 
         package_weight = RatingService.package_weight_type(
-            Weight=str(self.package_weight),
+            Weight=str(self._get_package_weight(ups_config.weight_uom)),
             Code=ups_config.weight_uom_code,
         )
         package_service_options = RatingService.package_service_options_type(
