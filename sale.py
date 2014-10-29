@@ -334,18 +334,32 @@ class Sale:
         )
         return shipment_cost, currency.id
 
+    def _ups_service_from_code(self, code):
+        """
+        Returns ups_service instance if code is allowed for this sale
+
+        Downstream module can decide the eligibility of ups service for sale
+        """
+        UPSService = Pool().get('ups.service')
+
+        try:
+            service, = UPSService.search([
+                ('code', '=', code)
+            ])
+        except ValueError:
+            return None
+        return service
+
     def _make_ups_rate_line(self, carrier, rated_shipment):
         """
         Build a rate line from the rated shipment
         """
-        UPSService = Pool().get('ups.service')
-
         # First identify the service
-        service = UPSService.search([
-            ('code', '=', str(rated_shipment.Service.Code.text))
-        ])
+        service = self._ups_service_from_code(
+            str(rated_shipment.Service.Code.text)
+        )
         if not service:
-            return
+            return None
 
         cost, currency = self._get_ups_rate_from_rated_shipment(rated_shipment)
 
@@ -361,11 +375,11 @@ class Sale:
         # values that need to be written back to sale order
         write_vals = {
             'carrier': carrier.id,
-            'ups_service_type': service[0].id,
+            'ups_service_type': service.id,
         }
 
         return (
-            carrier._get_ups_service_name(service[0]),
+            carrier._get_ups_service_name(service),
             cost,
             currency,
             metadata,
