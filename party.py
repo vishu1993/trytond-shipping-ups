@@ -7,9 +7,14 @@
 """
 import re
 
+# Remove when we are on python 3.x :)
+from orderedset import OrderedSet
+
 from ups.shipping_package import ShipmentConfirm
+from ups.base import PyUPSException
 from trytond.pool import Pool, PoolMeta
 from trytond.transaction import Transaction
+
 
 __all__ = ['Address']
 __metaclass__ = PoolMeta
@@ -195,3 +200,106 @@ class Address:
             self._get_ups_address_xml(),
             **vals
         )
+
+    def _ups_address_validate(self):
+        """
+        Validates the address using the PyUPS API.
+
+        .. tip::
+
+            This method is not intended to be called directly. It is
+            automatically called by the address validation API of
+            trytond-shipping module.
+        """
+        UPSConfiguration = Pool().get('ups.configuration')
+        Subdivision = Pool().get('country.subdivision')
+        Address = Pool().get('party.address')
+
+        api_instance = UPSConfiguration(1).api_instance(call='address_val')
+
+        if not self.country:
+            # XXX: Either this or assume it is the US of A
+            self.raise_user_error('Country is required to validate address.')
+
+        values = {
+            'CountryCode': self.country.code,
+        }
+
+        if self.subdivision:
+            # Fetch ups compatible subdivision
+            values['StateProvinceCode'] = self.subdivision.code.split('-')[-1]
+
+        if self.city:
+            values['City'] = self.city
+
+        if self.zip:
+            values['PostalCode'] = self.zip
+
+        try:
+            address_response = api_instance.request(
+                api_instance.request_type(**values)
+            )
+        except PyUPSException, exc:
+            self.raise_user_error(unicode(exc[0]))
+
+        if (len(address_response.AddressValidationResult) == 1) and \
+                address_response.AddressValidationResult.Quality.pyval == 1:
+            # This is a perfect match and there is no need to make
+            # suggestions.
+            return True
+
+        # The UPS response will include the following::
+        #
+        #   * City
+        #   * StateProvinceCode
+        #   * PostalCodeLowEnd  (Not very useful)
+        #   * PostalCodeHighEnd (Not Very Useful)
+        #
+        # Example: https://gist.github.com/tarunbhardwaj/4df0673bdd1c7bc6ab89
+        #
+        # The approach here is to clear out the duplicates with just city
+        # and the state and only return combinations of address which
+        # differentiate based on city and state.
+        #
+        # (In most practical uses, it would just be the city that keeps
+        # changing).
+
+        unique_combinations = OrderedSet([
+            (node.Address.City.text, node.Address.StateProvinceCode.text)
+            for node in address_response.AddressValidationResult
+        ])
+
+        # This part is sadly static... wish we could verify more than the
+        # state and city... like the street.
+        base_address = {
+            'name': self.name,
+            'street': self.street,
+            'streetbis': self.streetbis,
+            'country': self.country,
+            'zip': self.zip,
+        }
+        matches = []
+        for city, subdivision_code in unique_combinations:
+            try:
+                subdivision, = Subdivision.search([
+                    ('code', '=', '%s-%s' % (
+                        self.country.code, subdivision_code
+                    ))
+                ])
+            except ValueError:
+                # If a unique match cannot be found for the subdivision,
+                # we wont be able to save the address anyway.
+                continue
+
+            if (self.city.upper() == city.upper()) and \
+                    (self.subdivision == subdivision):
+                # UPS does not know it, but this is a right address too
+                # because we are suggesting exactly what is already in the
+                # address.
+                return True
+
+            matches.append(
+                Address(city=city, subdivision=subdivision, **base_address)
+            )
+
+        return matches

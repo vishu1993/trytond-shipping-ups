@@ -35,6 +35,7 @@ class TestUPS(unittest.TestCase):
 
     def setUp(self):
         trytond.tests.test_tryton.install_module('ups')
+        self.Address = POOL.get('party.address')
         self.Sale = POOL.get('sale.sale')
         self.SaleConfig = POOL.get('sale.configuration')
         self.UPSConfiguration = POOL.get('ups.configuration')
@@ -44,6 +45,7 @@ class TestUPS(unittest.TestCase):
         self.Account = POOL.get('account.account')
         self.Category = POOL.get('product.category')
         self.Carrier = POOL.get('carrier')
+        self.CarrierConfig = POOL.get('carrier.configuration')
         self.Party = POOL.get('party.party')
         self.PartyContact = POOL.get('party.contact_mechanism')
         self.PaymentTerm = POOL.get('account.invoice.payment_term')
@@ -236,6 +238,9 @@ class TestUPS(unittest.TestCase):
             'is_test': True,
             'uom_system': '01',
         }])
+        self.CarrierConfig.create([{
+            'default_validation_provider': 'ups',
+        }])
         self.SaleConfig.create([{
             'ups_service_type': self.ups_service.id,
         }])
@@ -344,8 +349,6 @@ class TestUPS(unittest.TestCase):
             'party': self.sale_party.id
         }])
 
-        self.create_sale(self.sale_party)
-
     def create_sale(self, party):
         """
         Create and confirm sale order for party with default values.
@@ -392,6 +395,7 @@ class TestUPS(unittest.TestCase):
 
             # Call method to create sale order
             self.setup_defaults()
+            self.create_sale(self.sale_party)
 
             shipment, = self.StockShipmentOut.search([])
             self.StockShipmentOut.write([shipment], {
@@ -428,6 +432,7 @@ class TestUPS(unittest.TestCase):
 
             # Call method to create sale order
             self.setup_defaults()
+            self.create_sale(self.sale_party)
 
             shipment, = self.StockShipmentOut.search([])
             self.StockShipmentOut.write([shipment], {
@@ -514,6 +519,60 @@ class TestUPS(unittest.TestCase):
                     UserError, self.ups_service.write,
                     [self.ups_service], argument
                 )
+
+    def test_0030_address_validation(self):
+        """
+        Test address validation with ups
+        """
+        with Transaction().start(DB_NAME, USER, context=CONTEXT):
+            self.setup_defaults()
+
+            country_us, = self.Country.search([('code', '=', 'US')])
+
+            subdivision_florida, = self.CountrySubdivision.search(
+                [('code', '=', 'US-FL')]
+            )
+            subdivision_california, = self.CountrySubdivision.search(
+                [('code', '=', 'US-CA')]
+            )
+
+            # Correct Address
+            suggestions = self.Address(**{
+                'name': 'John Doe',
+                'street': '250 NE 25th St',
+                'streetbis': '',
+                'zip': '33141',
+                'city': 'Miami',
+                'country': country_us.id,
+                'subdivision': subdivision_florida.id,
+            }).validate_address()
+            self.assertEqual(suggestions, True)
+
+            # Wrong subdivision
+            suggestions = self.Address(**{
+                'name': 'John Doe',
+                'street': '250 NE 25th St',
+                'streetbis': '',
+                'zip': '33141',
+                'city': 'Miami',
+                'country': country_us.id,
+                'subdivision': subdivision_california.id,
+            }).validate_address()
+            self.assertTrue(len(suggestions) > 0)
+            self.assertEqual(suggestions[0].subdivision, subdivision_florida)
+
+            # Wrong city and subdivision
+            suggestions = self.Address(**{
+                'name': 'John Doe',
+                'street': '250 NE 25th St',
+                'streetbis': '',
+                'zip': '33141',
+                'city': '',
+                'country': country_us.id,
+                'subdivision': subdivision_california.id,
+            }).validate_address()
+            self.assertTrue(len(suggestions) > 1)
+            self.assertEqual(suggestions[0].subdivision, subdivision_florida)
 
 
 def suite():

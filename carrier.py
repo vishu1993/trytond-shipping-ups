@@ -11,8 +11,22 @@ from trytond.model import ModelSQL, ModelView, fields
 from trytond.pool import PoolMeta, Pool
 from trytond.transaction import Transaction
 
-__all__ = ['Carrier', 'UPSService']
+__all__ = ['Carrier', 'UPSService', 'CarrierConfig']
 __metaclass__ = PoolMeta
+
+
+class CarrierConfig:
+    "Carrier Configuration"
+    __name__ = 'carrier.configuration'
+
+    @classmethod
+    def get_default_validation_providers(cls):
+        """
+        Add ups to validation provider list
+        """
+        methods = super(CarrierConfig, cls).get_default_validation_providers()
+        methods.append(('ups', 'UPS'))
+        return methods
 
 
 class Carrier:
