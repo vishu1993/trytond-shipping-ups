@@ -6,6 +6,7 @@
     :license: BSD, see LICENSE for more details.
 """
 from decimal import Decimal
+import logging
 
 from lxml.builder import E
 from ups.rating_package import RatingService
@@ -32,6 +33,8 @@ UPS_PACKAGE_TYPES = [
     ('2b', 'Medium Express Box'),
     ('2c', 'Large Express Box'),
 ]
+
+logger = logging.getLogger(__name__)
 
 
 class Configuration:
@@ -324,10 +327,25 @@ class Sale:
         # service and package type to the destination we know.
         rate_api.RequestOption = E.RequestOption('Rate')
 
+        # Logging.
+        logger.debug(
+            'Making Rate API Request for shipping cost of'
+            'Sale ID: {0} and Carrier ID: {1}'
+            .format(self.id, self.carrier.id)
+        )
+        logger.debug('--------RATE API REQUEST--------')
+        logger.debug(str(rate_request))
+        logger.debug('--------END REQUEST--------')
+
         try:
             response = rate_api.request(rate_request)
         except PyUPSException, e:
             self.raise_user_error(unicode(e[0]))
+
+        # Logging.
+        logger.debug('--------RATE API RESPONSE--------')
+        logger.debug(str(response))
+        logger.debug('--------END RESPONSE--------')
 
         shipment_cost, currency = self._get_ups_rate_from_rated_shipment(
             response.RatedShipment
@@ -399,6 +417,16 @@ class Sale:
         rate_request = self._get_rate_request_xml(mode='shop')
         rate_api = ups_config.api_instance(call="rate")
 
+        # Logging.
+        logger.debug(
+            'Making Rate API Request for shipping rates of'
+            'Sale ID: {0} and Carrier ID: {1}'
+            .format(self.id, self.carrier.id)
+        )
+        logger.debug('--------RATE API REQUEST--------')
+        logger.debug(str(rate_request))
+        logger.debug('--------END REQUEST--------')
+
         try:
             response = rate_api.request(rate_request)
         except PyUPSException, e:
@@ -409,6 +437,11 @@ class Sale:
             if silent:
                 return []
             self.raise_user_error(unicode(e[0]))
+
+        # Logging.
+        logger.debug('--------START RATE API RESPONSE--------')
+        logger.debug(str(response))
+        logger.debug('--------END RESPONSE--------')
 
         return filter(None, [
             self._make_ups_rate_line(carrier, rated_shipment)

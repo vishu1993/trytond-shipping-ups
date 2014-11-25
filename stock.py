@@ -7,10 +7,11 @@
 """
 from decimal import Decimal
 import base64
+import logging
 
 from ups.shipping_package import ShipmentConfirm, ShipmentAccept
 from ups.base import PyUPSException
-from trytond.model import ModelView, fields
+from trytond.model import fields, ModelView
 from trytond.wizard import Wizard, StateView, Button
 from trytond.transaction import Transaction
 from trytond.pool import Pool, PoolMeta
@@ -19,15 +20,17 @@ from trytond.rpc import RPC
 
 from .sale import UPS_PACKAGE_TYPES
 
-
 __metaclass__ = PoolMeta
 __all__ = [
-    'ShipmentOut', 'StockMove', 'GenerateUPSLabelMessage', 'GenerateUPSLabel'
+    'ShipmentOut', 'StockMove', 'ShippingUps',
+    'GenerateShippingLabel'
 ]
 
 STATES = {
     'readonly': Eval('state') == 'done',
 }
+
+logger = logging.getLogger(__name__)
 
 
 class ShipmentOut:
@@ -246,10 +249,25 @@ class ShipmentOut:
         shipment_confirm = self._get_shipment_confirm_xml()
         shipment_confirm_instance = ups_config.api_instance(call="confirm")
 
+        # Logging.
+        logger.debug(
+            'Making Shipment Confirm Request for'
+            'Shipment ID: {0} and Carrier ID: {1}'
+            .format(self.id, self.carrier.id)
+        )
+        logger.debug('--------SHIPMENT CONFIRM REQUEST--------')
+        logger.debug(str(shipment_confirm))
+        logger.debug('--------END REQUEST--------')
+
         try:
             response = shipment_confirm_instance.request(shipment_confirm)
         except PyUPSException, e:
             self.raise_user_error(unicode(e[0]))
+
+        # Logging.
+        logger.debug('--------SHIPMENT CONFIRM RESPONSE--------')
+        logger.debug(str(response))
+        logger.debug('--------END RESPONSE--------')
 
         shipping_cost, currency = self._get_ups_shipment_cost(response)
 
@@ -278,16 +296,41 @@ class ShipmentOut:
         shipment_confirm = self._get_shipment_confirm_xml()
         shipment_confirm_instance = ups_config.api_instance(call="confirm")
 
+        # Logging.
+        logger.debug(
+            'Making Shipment Confirm Request for'
+            'Shipment ID: {0} and Carrier ID: {1}'
+            .format(self.id, self.carrier.id)
+        )
+        logger.debug('--------SHIPMENT CONFIRM REQUEST--------')
+        logger.debug(str(shipment_confirm))
+        logger.debug('--------END REQUEST--------')
+
         try:
             response = shipment_confirm_instance.request(shipment_confirm)
         except PyUPSException, e:
             self.raise_user_error(unicode(e[0]))
+
+        # Logging.
+        logger.debug('--------SHIPMENT CONFIRM RESPONSE--------')
+        logger.debug(str(response))
+        logger.debug('--------END RESPONSE--------')
 
         digest = ShipmentConfirm.extract_digest(response)
 
         shipment_accept = ShipmentAccept.shipment_accept_request_type(digest)
 
         shipment_accept_instance = ups_config.api_instance(call="accept")
+
+        # Logging.
+        logger.debug(
+            'Making Shipment Accept Request for'
+            'Shipment ID: {0} and Carrier ID: {1}'
+            .format(self.id, self.carrier.id)
+        )
+        logger.debug('--------SHIPMENT ACCEPT REQUEST--------')
+        logger.debug(str(shipment_confirm))
+        logger.debug('--------END REQUEST--------')
 
         try:
             response = shipment_accept_instance.request(shipment_accept)
@@ -296,6 +339,11 @@ class ShipmentOut:
 
         if len(response.ShipmentResults.PackageResults) > 1:
             self.raise_user_error('ups_multiple_packages_not_supported')
+
+        # Logging.
+        logger.debug('--------SHIPMENT ACCEPT RESPONSE--------')
+        logger.debug(str(response))
+        logger.debug('--------END RESPONSE--------')
 
         shipment_res = response.ShipmentResults
         package, = shipment_res.PackageResults
@@ -339,40 +387,6 @@ class ShipmentOut:
         return res
 
 
-class GenerateUPSLabelMessage(ModelView):
-    'Generate UPS Labels Message'
-    __name__ = 'generate.ups.label.message'
-
-    tracking_number = fields.Char("Tracking number", readonly=True)
-
-
-class GenerateUPSLabel(Wizard):
-    'Generate UPS Labels'
-    __name__ = 'generate.ups.label'
-
-    start = StateView(
-        'generate.ups.label.message',
-        'ups.generate_ups_label_message_view_form',
-        [
-            Button('Ok', 'end', 'tryton-ok'),
-        ]
-    )
-
-    def default_start(self, data):
-        Shipment = Pool().get('stock.shipment.out')
-
-        try:
-            shipment, = Shipment.browse(Transaction().context['active_ids'])
-        except ValueError:
-            self.raise_user_error(
-                'This wizard can be called for only one shipment at a time'
-            )
-
-        tracking_number = shipment.make_ups_labels()
-
-        return {'tracking_number': str(tracking_number)}
-
-
 class StockMove:
     "Stock move"
     __name__ = "stock.move"
@@ -395,3 +409,61 @@ class StockMove:
             quantity = self.quantity
 
         return Decimal(self.product.list_price) * Decimal(quantity)
+
+
+class ShippingUps(ModelView):
+    'Generate Labels'
+    __name__ = 'shipping.label.ups'
+
+    ups_service_type = fields.Many2One('ups.service', 'UPS Service Type')
+    ups_package_type = fields.Selection(
+        UPS_PACKAGE_TYPES, 'Package Content Type'
+    )
+    ups_saturday_delivery = fields.Boolean("Is Saturday Delivery ?")
+
+
+class GenerateShippingLabel(Wizard):
+    'Generate Labels'
+    __name__ = 'shipping.label'
+
+    ups_config = StateView(
+        'shipping.label.ups',
+        'ups.shipping_ups_configuration_view_form',
+        [
+            Button('Back', 'start', 'tryton-go-previous'),
+            Button('Continue', 'generate', 'tryton-go-next'),
+        ]
+    )
+
+    def default_ups_config(self, data):
+        Config = Pool().get('sale.configuration')
+        config = Config(1)
+        shipment = self.start.shipment
+
+        return {
+            'ups_service_type': (
+                shipment.ups_service_type and shipment.ups_service_type.id
+            ) or (
+                config.ups_service_type and config.ups_service_type.id
+            ) or None,
+            'ups_package_type': (
+                shipment.ups_package_type or config.ups_package_type
+            ),
+            'ups_saturday_delivery': shipment.ups_saturday_delivery
+        }
+
+    def transition_next(self):
+        if self.start.carrier.carrier_cost_method == 'ups':
+            return 'ups_config'
+        return super(GenerateShippingLabel, self).transition_next()
+
+    def update_shipment(self):
+        shipment = super(GenerateShippingLabel, self).update_shipment()
+
+        if self.start.carrier.carrier_cost_method == 'ups':
+            shipment.ups_service_type = self.ups_config.ups_service_type
+            shipment.ups_package_type = self.ups_config.ups_package_type
+            shipment.ups_saturday_delivery = \
+                self.ups_config.ups_saturday_delivery
+
+        return shipment
