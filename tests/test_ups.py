@@ -57,6 +57,7 @@ class TestUPS(unittest.TestCase):
         self.IrAttachment = POOL.get('ir.attachment')
         self.User = POOL.get('res.user')
         self.Template = POOL.get('product.template')
+        self.GenerateLabel = POOL.get('shipping.label', type="wizard")
 
         assert 'UPS_LICENSE_NO' in os.environ, \
             "UPS_LICENSE_NO not given. Hint:Use export UPS_LICENSE_NO=<number>"
@@ -172,7 +173,7 @@ class TestUPS(unittest.TestCase):
         """Method to setup defaults
         """
         # Create currency
-        currency, = self.Currency.create([{
+        self.currency, = self.Currency.create([{
             'name': 'United Stated Dollar',
             'code': 'USD',
             'symbol': 'USD',
@@ -221,6 +222,11 @@ class TestUPS(unittest.TestCase):
             'code': '01',
         }])
 
+        self.ups_service2, = self.UPSService.create([{
+            'name': 'Second Next Day Air',
+            'code': '02',
+        }])
+
         # UPS Configuration
         self.UPSConfiguration.create([{
             'license_key': os.environ['UPS_LICENSE_NO'],
@@ -235,7 +241,7 @@ class TestUPS(unittest.TestCase):
         }])
         self.company, = self.Company.create([{
             'party': company_party.id,
-            'currency': currency.id,
+            'currency': self.currency.id,
         }])
         self.PartyContact.create([{
             'type': 'phone',
@@ -408,6 +414,85 @@ class TestUPS(unittest.TestCase):
                 shipment.make_ups_labels()
 
             self.assertTrue(shipment.tracking_number)
+            self.assertTrue(
+                self.IrAttachment.search([
+                    ('resource', '=', 'stock.shipment.out,%s' % shipment.id)
+                ], count=True) > 0
+            )
+
+    def test_0012_generate_ups_labels_using_wizard(self):
+        """
+        Test case to generate UPS labels using wizard
+        """
+        with Transaction().start(DB_NAME, USER, context=CONTEXT):
+
+            # Call method to create sale order
+            self.setup_defaults()
+
+            shipment, = self.StockShipmentOut.search([])
+            self.StockShipmentOut.write([shipment], {
+                'code': str(int(time())),
+            })
+
+            # Before generating labels, there is no tracking number generated
+            # And no attachment created for labels
+            self.assertFalse(shipment.tracking_number)
+            attatchment = self.IrAttachment.search([])
+            self.assertEqual(len(attatchment), 0)
+
+            # Make shipment in packed state.
+            shipment.assign([shipment])
+            shipment.pack([shipment])
+
+            with Transaction().set_context(
+                company=self.company.id, active_id=shipment.id
+            ):
+                # Call method to generate labels.
+                session_id, start_state, _ = self.GenerateLabel.create()
+
+                generate_label = self.GenerateLabel(session_id)
+
+                result = generate_label.default_start({})
+
+                self.assertEqual(result['shipment'], shipment.id)
+                self.assertEqual(result['carrier'], shipment.carrier.id)
+
+                generate_label.start.shipment = shipment.id
+                generate_label.start.carrier = result['carrier']
+
+                result = generate_label.default_ups_config({})
+
+                self.assertEqual(
+                    result['ups_service_type'], shipment.ups_service_type.id
+                )
+                self.assertEqual(
+                    result['ups_package_type'], shipment.ups_package_type
+                )
+                self.assertEqual(
+                    result['ups_saturday_delivery'], True
+                )
+
+                generate_label.ups_config.ups_service_type = self.ups_service2
+                generate_label.ups_config.ups_package_type = '01'
+                generate_label.ups_config.ups_saturday_delivery = False
+
+                result = generate_label.default_generate({})
+
+                self.assertEqual(
+                    result['message'],
+                    'Shipment labels have been generated via %s and saved as '
+                    'attachments for the shipment' % (
+                        shipment.carrier.carrier_cost_method.upper()
+                    )
+                )
+
+            self.assertTrue(shipment.tracking_number)
+            self.assertEqual(shipment.carrier, self.carrier)
+            self.assertNotEqual(shipment.cost, Decimal('0'))
+            self.assertEqual(shipment.cost_currency, self.currency)
+            self.assertEqual(shipment.ups_service_type, self.ups_service2)
+            self.assertEqual(shipment.ups_package_type, '01')
+            self.assertEqual(shipment.ups_saturday_delivery, False)
             self.assertTrue(
                 self.IrAttachment.search([
                     ('resource', '=', 'stock.shipment.out,%s' % shipment.id)
