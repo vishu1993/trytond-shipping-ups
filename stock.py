@@ -453,9 +453,11 @@ class GenerateShippingLabel(Wizard):
         }
 
     def transition_next(self):
+        state = super(GenerateShippingLabel, self).transition_next()
+
         if self.start.carrier.carrier_cost_method == 'ups':
             return 'ups_config'
-        return super(GenerateShippingLabel, self).transition_next()
+        return state
 
     def update_shipment(self):
         shipment = super(GenerateShippingLabel, self).update_shipment()
