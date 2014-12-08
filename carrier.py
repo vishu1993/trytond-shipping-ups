@@ -104,7 +104,7 @@ class UPSService(ModelSQL, ModelView):
 
     @staticmethod
     def check_xml_record(records, values):
-        if 'display_name' in values and len(values) == 1:
-            # Allow editing if display_name is the only key in values
-            return True
-        return False
+        for key in values:
+            if key not in ['display_name', 'active']:
+                return False
+        return True
