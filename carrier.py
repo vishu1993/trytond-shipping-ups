@@ -86,7 +86,7 @@ class Carrier:
 
         if Transaction().context.get('ignore_carrier_computation'):
             return Decimal('0'), default_currency.id
-        if not sale_id and not shipment_id:
+        if not (sale_id or shipment_id):
             return Decimal('0'), default_currency.id
 
         if self.carrier_cost_method != 'ups':
