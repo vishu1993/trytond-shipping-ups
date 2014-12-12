@@ -80,23 +80,26 @@ class Carrier:
         Shipment = Pool().get('stock.shipment.out')
         Currency = Pool().get('currency.currency')
 
-        shipment = Transaction().context.get('shipment')
-        sale = Transaction().context.get('sale')
+        shipment_id = Transaction().context.get('shipment')
+        sale_id = Transaction().context.get('sale')
         default_currency, = Currency.search([('code', '=', 'USD')])
 
         if Transaction().context.get('ignore_carrier_computation'):
             return Decimal('0'), default_currency.id
-        if not sale and not shipment:
+        if not sale_id and not shipment_id:
             return Decimal('0'), default_currency.id
 
         if self.carrier_cost_method != 'ups':
             return super(Carrier, self).get_sale_price()
 
-        if sale:
-            return Sale(sale).get_ups_shipping_cost()
+        if sale_id:
+            return Sale(sale_id).get_ups_shipping_cost()
 
-        if shipment:
-            return Shipment(shipment).get_ups_shipping_cost()
+        if shipment_id and shipment_id > 0:
+            # get_ups_shipping_cost must not be called if shipment is not saved.
+            # If shipment is saved/active record is created properly,
+            # then the ID must be a positive integer.
+            return Shipment(shipment_id).get_ups_shipping_cost()
 
         return Decimal('0'), default_currency.id
 
