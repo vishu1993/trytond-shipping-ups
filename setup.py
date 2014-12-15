@@ -81,7 +81,8 @@ major_version = int(major_version)
 minor_version = int(minor_version)
 
 requires = [
-    'pyups'
+    'pyups',
+    'orderedset',
 ]
 
 MODULE2PREFIX = {
