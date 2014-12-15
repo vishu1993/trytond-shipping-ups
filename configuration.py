@@ -9,6 +9,7 @@ from trytond.model import fields, ModelSingleton, ModelSQL, ModelView
 from trytond.pool import Pool
 from ups.shipping_package import ShipmentConfirm, ShipmentAccept, ShipmentVoid
 from ups.rating_package import RatingService
+from ups.address_validation import AddressValidation
 
 __all__ = ['UPSConfiguration']
 
@@ -110,6 +111,8 @@ class UPSConfiguration(ModelSingleton, ModelSQL, ModelView):
             call_method = ShipmentVoid
         elif call == 'rate':
             call_method = RatingService
+        elif call == 'address_val':
+            call_method = AddressValidation
         else:
             call_method = None
 
