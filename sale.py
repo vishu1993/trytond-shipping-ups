@@ -421,7 +421,7 @@ class Sale:
         logger.debug(
             'Making Rate API Request for shipping rates of'
             'Sale ID: {0} and Carrier ID: {1}'
-            .format(self.id, self.carrier.id)
+            .format(self.id, carrier.id)
         )
         logger.debug('--------RATE API REQUEST--------')
         logger.debug(str(rate_request))
