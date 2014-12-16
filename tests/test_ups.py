@@ -574,6 +574,43 @@ class TestUPS(unittest.TestCase):
             self.assertTrue(len(suggestions) > 1)
             self.assertEqual(suggestions[0].subdivision, subdivision_florida)
 
+    def test_0035_ups_shipping_rates(self):
+        """
+        Tests the get_ups_shipping_rates() method.
+        """
+        with Transaction().start(DB_NAME, USER, context=CONTEXT):
+            self.setup_defaults()
+
+            with Transaction().set_context(company=self.company.id):
+                # Create sale order
+                sale, = self.Sale.create([{
+                    'reference': 'S-1001',
+                    'payment_term': self.payment_term,
+                    'party': self.sale_party.id,
+                    'invoice_address': self.sale_party.addresses[0].id,
+                    'shipment_address': self.sale_party.addresses[0].id,
+                    'ups_service_type': self.ups_service.id,
+                    'ups_saturday_delivery': True,
+                    'lines': [
+                        ('create', [{
+                            'type': 'line',
+                            'quantity': 1,
+                            'product': self.product,
+                            'unit_price': Decimal('10.00'),
+                            'description': 'Test Description1',
+                            'unit': self.product.template.default_uom,
+                        }]),
+                    ]
+                }])
+
+                self.StockLocation.write([sale.warehouse], {
+                    'address': self.company.party.addresses[0].id,
+                })
+                self.assertEqual(len(sale.lines), 1)
+
+            with Transaction().set_context(sale=sale):
+                self.assertGreater(self.carrier.get_rates(), 0)
+
 
 def suite():
     suite = trytond.tests.test_tryton.suite()
