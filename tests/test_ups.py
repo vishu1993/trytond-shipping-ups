@@ -463,6 +463,7 @@ class TestUPS(unittest.TestCase):
                 self.assertEqual(result['carrier'], shipment.carrier.id)
 
                 generate_label.start.shipment = shipment.id
+                generate_label.start.override_weight = Decimal('0')
                 generate_label.start.carrier = result['carrier']
 
                 result = generate_label.default_ups_config({})
