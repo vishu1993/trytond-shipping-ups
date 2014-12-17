@@ -246,8 +246,10 @@ class ShipmentOut:
         :returns: The shipping cost with currency
         """
         UPSConfiguration = Pool().get('ups.configuration')
+        Carrier = Pool().get('carrier')
 
         ups_config = UPSConfiguration(1)
+        carrier, = Carrier.search(['carrier_cost_method', '=', 'ups'])
 
         shipment_confirm = self._get_shipment_confirm_xml()
         shipment_confirm_instance = ups_config.api_instance(call="confirm")
@@ -256,7 +258,7 @@ class ShipmentOut:
         logger.debug(
             'Making Shipment Confirm Request for'
             'Shipment ID: {0} and Carrier ID: {1}'
-            .format(self.id, self.carrier.id)
+            .format(self.id, carrier.id)
         )
         logger.debug('--------SHIPMENT CONFIRM REQUEST--------')
         logger.debug(str(shipment_confirm))
