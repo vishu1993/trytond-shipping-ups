@@ -320,8 +320,10 @@ class Sale:
         :returns: The shipping cost with currency
         """
         UPSConfiguration = Pool().get('ups.configuration')
+        Carrier = Pool().get('carrier')
 
         ups_config = UPSConfiguration(1)
+        carrier, = Carrier.search(['carrier_cost_method', '=', 'ups'])
 
         rate_request = self._get_rate_request_xml()
         rate_api = ups_config.api_instance(call="rate")
@@ -334,7 +336,7 @@ class Sale:
         logger.debug(
             'Making Rate API Request for shipping cost of'
             'Sale ID: {0} and Carrier ID: {1}'
-            .format(self.id, self.carrier.id)
+            .format(self.id, carrier.id)
         )
         logger.debug('--------RATE API REQUEST--------')
         logger.debug(str(rate_request))
