@@ -9,6 +9,7 @@ import re
 
 # Remove when we are on python 3.x :)
 from orderedset import OrderedSet
+from lxml import etree
 
 from ups.shipping_package import ShipmentConfirm
 from ups.base import PyUPSException
@@ -215,7 +216,8 @@ class Address:
         Subdivision = Pool().get('country.subdivision')
         Address = Pool().get('party.address')
 
-        api_instance = UPSConfiguration(1).api_instance(call='address_val')
+        ups_config = UPSConfiguration(1)
+        api_instance = ups_config.api_instance(call='address_val')
 
         if not self.country:
             # XXX: Either this or assume it is the US of A
@@ -235,9 +237,27 @@ class Address:
         if self.zip:
             values['PostalCode'] = self.zip
 
+        address_request = api_instance.request_type(**values)
+
+        # Logging.
+        ups_config.logger.debug(
+            'Making Address Validation Request to UPS for Address Id: {0}'
+            .format(self.id)
+        )
+        ups_config.logger.debug(
+            '--------AV API REQUEST--------\n%s'
+            '\n--------END REQUEST--------'
+            % etree.tostring(address_request, pretty_print=True)
+        )
+
         try:
-            address_response = api_instance.request(
-                api_instance.request_type(**values)
+            address_response = api_instance.request(address_request)
+
+            # Logging.
+            ups_config.logger.debug(
+                '--------AV API RESPONSE--------\n%s'
+                '\n--------END RESPONSE--------'
+                % etree.tostring(address_response, pretty_print=True)
             )
         except PyUPSException, exc:
             self.raise_user_error(unicode(exc[0]))
