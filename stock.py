@@ -380,6 +380,7 @@ class ShipmentOut:
         }])
         return tracking_number
 
+    @fields.depends('ups_service_type')
     def on_change_carrier(self):
         """
         Show/Hide UPS Tab in view on change of carrier
