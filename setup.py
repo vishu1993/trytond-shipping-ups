@@ -83,6 +83,7 @@ minor_version = int(minor_version)
 requires = [
     'pyups',
     'orderedset',
+    'logbook',
 ]
 
 MODULE2PREFIX = {

@@ -6,8 +6,8 @@
     :license: BSD, see LICENSE for more details.
 """
 from decimal import Decimal, ROUND_UP
-import logging
 
+from lxml import etree
 from lxml.builder import E
 from ups.rating_package import RatingService
 from ups.base import PyUPSException
@@ -33,8 +33,6 @@ UPS_PACKAGE_TYPES = [
     ('2b', 'Medium Express Box'),
     ('2c', 'Large Express Box'),
 ]
-
-logger = logging.getLogger(__name__)
 
 
 class Configuration:
@@ -333,24 +331,28 @@ class Sale:
         rate_api.RequestOption = E.RequestOption('Rate')
 
         # Logging.
-        logger.debug(
+        ups_config.logger.debug(
             'Making Rate API Request for shipping cost of'
             'Sale ID: {0} and Carrier ID: {1}'
             .format(self.id, carrier.id)
         )
-        logger.debug('--------RATE API REQUEST--------')
-        logger.debug(str(rate_request))
-        logger.debug('--------END REQUEST--------')
+        ups_config.logger.debug(
+            '--------RATE API REQUEST--------\n%s'
+            '\n--------END REQUEST--------'
+            % etree.tostring(rate_request, pretty_print=True)
+        )
 
         try:
             response = rate_api.request(rate_request)
+
+            # Logging.
+            ups_config.logger.debug(
+                '--------RATE API RESPONSE--------\n%s'
+                '\n--------END RESPONSE--------'
+                % etree.tostring(response, pretty_print=True)
+            )
         except PyUPSException, e:
             self.raise_user_error(unicode(e[0]))
-
-        # Logging.
-        logger.debug('--------RATE API RESPONSE--------')
-        logger.debug(str(response))
-        logger.debug('--------END RESPONSE--------')
 
         shipment_cost, currency = self._get_ups_rate_from_rated_shipment(
             response.RatedShipment
@@ -423,17 +425,25 @@ class Sale:
         rate_api = ups_config.api_instance(call="rate")
 
         # Logging.
-        logger.debug(
+        ups_config.logger.debug(
             'Making Rate API Request for shipping rates of'
             'Sale ID: {0} and Carrier ID: {1}'
             .format(self.id, carrier.id)
         )
-        logger.debug('--------RATE API REQUEST--------')
-        logger.debug(str(rate_request))
-        logger.debug('--------END REQUEST--------')
+        ups_config.logger.debug(
+            '--------RATE API REQUEST--------\n%s'
+            '\n--------END REQUEST--------'
+            % etree.tostring(rate_request, pretty_print=True)
+        )
 
         try:
             response = rate_api.request(rate_request)
+            # Logging.
+            ups_config.logger.debug(
+                '--------START RATE API RESPONSE--------\n%s'
+                '\n--------END RESPONSE--------'
+                % etree.tostring(response, pretty_print=True)
+            )
         except PyUPSException, e:
             error = e[0].split(':')
             if error[0] in ['Hard-111285', 'Hard-111280']:
@@ -442,11 +452,6 @@ class Sale:
             if silent:
                 return []
             self.raise_user_error(unicode(e[0]))
-
-        # Logging.
-        logger.debug('--------START RATE API RESPONSE--------')
-        logger.debug(str(response))
-        logger.debug('--------END RESPONSE--------')
 
         return filter(None, [
             self._make_ups_rate_line(carrier, rated_shipment)
