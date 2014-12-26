@@ -444,7 +444,7 @@ class GenerateShippingLabel(Wizard):
 
     ups_config = StateView(
         'shipping.label.ups',
-        'ups.shipping_ups_configuration_view_form',
+        'shipping_ups.shipping_ups_configuration_view_form',
         [
             Button('Back', 'start', 'tryton-go-previous'),
             Button('Continue', 'generate', 'tryton-go-next'),
