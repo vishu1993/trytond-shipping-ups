@@ -5,6 +5,8 @@
     :copyright: (c) 2014 by Openlabs Technologies & Consulting (P) Limited
     :license: BSD, see LICENSE for more details.
 """
+from logbook import Logger
+
 from trytond.model import fields, ModelSingleton, ModelSQL, ModelView
 from trytond.pool import Pool
 from ups.shipping_package import ShipmentConfirm, ShipmentAccept, ShipmentVoid
@@ -45,6 +47,13 @@ class UPSConfiguration(ModelSingleton, ModelSQL, ModelView):
     @staticmethod
     def default_uom_system():
         return '01'
+
+    @property
+    def logger(self):
+        """
+        Returns logger instance for UPS
+        """
+        return Logger('trytond_ups')
 
     def get_default_uom(self, name):
         """

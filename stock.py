@@ -7,7 +7,7 @@
 """
 from decimal import Decimal, ROUND_UP
 import base64
-import logging
+from lxml import etree
 
 from ups.shipping_package import ShipmentConfirm, ShipmentAccept
 from ups.base import PyUPSException
@@ -29,8 +29,6 @@ __all__ = [
 STATES = {
     'readonly': Eval('state') == 'done',
 }
-
-logger = logging.getLogger(__name__)
 
 
 class ShipmentOut:
@@ -255,24 +253,28 @@ class ShipmentOut:
         shipment_confirm_instance = ups_config.api_instance(call="confirm")
 
         # Logging.
-        logger.debug(
+        ups_config.logger.debug(
             'Making Shipment Confirm Request for'
             'Shipment ID: {0} and Carrier ID: {1}'
             .format(self.id, carrier.id)
         )
-        logger.debug('--------SHIPMENT CONFIRM REQUEST--------')
-        logger.debug(str(shipment_confirm))
-        logger.debug('--------END REQUEST--------')
+        ups_config.logger.debug(
+            '--------SHIPMENT CONFIRM REQUEST--------\n%s'
+            '\n--------END REQUEST--------'
+            % etree.tostring(shipment_confirm, pretty_print=True)
+        )
 
         try:
             response = shipment_confirm_instance.request(shipment_confirm)
+
+            # Logging.
+            ups_config.logger.debug(
+                '--------SHIPMENT CONFIRM RESPONSE--------\n%s'
+                '\n--------END RESPONSE--------'
+                % etree.tostring(response, pretty_print=True)
+            )
         except PyUPSException, e:
             self.raise_user_error(unicode(e[0]))
-
-        # Logging.
-        logger.debug('--------SHIPMENT CONFIRM RESPONSE--------')
-        logger.debug(str(response))
-        logger.debug('--------END RESPONSE--------')
 
         shipping_cost, currency = self._get_ups_shipment_cost(response)
 
@@ -302,24 +304,28 @@ class ShipmentOut:
         shipment_confirm_instance = ups_config.api_instance(call="confirm")
 
         # Logging.
-        logger.debug(
+        ups_config.logger.debug(
             'Making Shipment Confirm Request for'
             'Shipment ID: {0} and Carrier ID: {1}'
             .format(self.id, self.carrier.id)
         )
-        logger.debug('--------SHIPMENT CONFIRM REQUEST--------')
-        logger.debug(str(shipment_confirm))
-        logger.debug('--------END REQUEST--------')
+        ups_config.logger.debug(
+            '--------SHIPMENT CONFIRM REQUEST--------\n%s'
+            '\n--------END REQUEST--------'
+            % etree.tostring(shipment_confirm, pretty_print=True)
+        )
 
         try:
             response = shipment_confirm_instance.request(shipment_confirm)
+
+            # Logging.
+            ups_config.logger.debug(
+                '--------SHIPMENT CONFIRM RESPONSE--------\n%s'
+                '\n--------END RESPONSE--------'
+                % etree.tostring(response, pretty_print=True)
+            )
         except PyUPSException, e:
             self.raise_user_error(unicode(e[0]))
-
-        # Logging.
-        logger.debug('--------SHIPMENT CONFIRM RESPONSE--------')
-        logger.debug(str(response))
-        logger.debug('--------END RESPONSE--------')
 
         digest = ShipmentConfirm.extract_digest(response)
 
@@ -328,27 +334,31 @@ class ShipmentOut:
         shipment_accept_instance = ups_config.api_instance(call="accept")
 
         # Logging.
-        logger.debug(
+        ups_config.logger.debug(
             'Making Shipment Accept Request for'
             'Shipment ID: {0} and Carrier ID: {1}'
             .format(self.id, self.carrier.id)
         )
-        logger.debug('--------SHIPMENT ACCEPT REQUEST--------')
-        logger.debug(str(shipment_confirm))
-        logger.debug('--------END REQUEST--------')
+        ups_config.logger.debug(
+            '--------SHIPMENT ACCEPT REQUEST--------\n%s'
+            '\n--------END REQUEST--------'
+            % etree.tostring(shipment_accept, pretty_print=True)
+        )
 
         try:
             response = shipment_accept_instance.request(shipment_accept)
+
+            # Logging.
+            ups_config.logger.debug(
+                '--------SHIPMENT ACCEPT RESPONSE--------\n%s'
+                '\n--------END RESPONSE--------'
+                % etree.tostring(response, pretty_print=True)
+            )
         except PyUPSException, e:
             self.raise_user_error(unicode(e[0]))
 
         if len(response.ShipmentResults.PackageResults) > 1:
             self.raise_user_error('ups_multiple_packages_not_supported')
-
-        # Logging.
-        logger.debug('--------SHIPMENT ACCEPT RESPONSE--------')
-        logger.debug(str(response))
-        logger.debug('--------END RESPONSE--------')
 
         shipment_res = response.ShipmentResults
         package, = shipment_res.PackageResults
@@ -380,6 +390,7 @@ class ShipmentOut:
         }])
         return tracking_number
 
+    @fields.depends('ups_service_type')
     def on_change_carrier(self):
         """
         Show/Hide UPS Tab in view on change of carrier
@@ -433,7 +444,7 @@ class GenerateShippingLabel(Wizard):
 
     ups_config = StateView(
         'shipping.label.ups',
-        'ups.shipping_ups_configuration_view_form',
+        'shipping_ups.shipping_ups_configuration_view_form',
         [
             Button('Back', 'start', 'tryton-go-previous'),
             Button('Continue', 'generate', 'tryton-go-next'),
