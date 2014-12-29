@@ -27,10 +27,10 @@ def register():
         StockMove,
         ShipmentOut,
         ShippingUps,
-        module='ups', type_='model'
+        module='shipping_ups', type_='model'
     )
 
     Pool.register(
         GenerateShippingLabel,
-        module='ups', type_='wizard'
+        module='shipping_ups', type_='wizard'
     )

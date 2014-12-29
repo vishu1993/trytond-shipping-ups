@@ -24,9 +24,9 @@ import unittest
 import trytond.tests.test_tryton
 from trytond.tests.test_tryton import POOL, DB_NAME, USER, CONTEXT
 from trytond.transaction import Transaction
-from trytond.config import CONFIG
+from trytond.config import config
 from trytond.error import UserError
-CONFIG['data_path'] = '.'
+config.set('database', 'path', '.')
 
 
 class TestUPS(unittest.TestCase):
@@ -34,7 +34,7 @@ class TestUPS(unittest.TestCase):
     """
 
     def setUp(self):
-        trytond.tests.test_tryton.install_module('ups')
+        trytond.tests.test_tryton.install_module('shipping_ups')
         self.Address = POOL.get('party.address')
         self.Sale = POOL.get('sale.sale')
         self.SaleConfig = POOL.get('sale.configuration')
