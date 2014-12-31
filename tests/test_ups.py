@@ -612,6 +612,32 @@ class TestUPS(unittest.TestCase):
             with Transaction().set_context(sale=sale):
                 self.assertGreater(self.carrier.get_rates(), 0)
 
+    def test_0040_ups_on_change_carrier(self):
+        """
+        Test on_change_carrier() of shipment.
+        """
+        with Transaction().start(DB_NAME, USER, context=CONTEXT) as trx:
+            self.setup_defaults()
+            self.create_sale(self.sale_party)
+
+            trx.set_context(company=self.company.id)
+            shipment, = self.StockShipmentOut.search([])
+            self.StockShipmentOut.write([shipment], {
+                'code': '1234'
+            })
+
+            self.assertGreater(
+                len(shipment.on_change_carrier()),
+                0
+            )
+
+            shipment.carrier = None
+            shipment.save()
+
+            self.assertEquals(shipment.on_change_carrier(), {
+                'is_ups_shipping': None
+            })
+
 
 def suite():
     suite = trytond.tests.test_tryton.suite()
