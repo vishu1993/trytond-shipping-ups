@@ -132,7 +132,6 @@ class Sale:
 
     def apply_ups_shipping(self):
         "Add a shipping line to sale for ups"
-        Sale = Pool().get('sale.sale')
         Currency = Pool().get('currency.currency')
 
         if self.is_ups_shipping:
@@ -144,25 +143,12 @@ class Sale:
             shipment_cost = Currency.compute(
                 Currency(currency_id), shipment_cost, self.currency
             )
-            Sale.write([self], {
-                'lines': [
-                    ('create', [{
-                        'type': 'line',
-                        'product': self.carrier.carrier_product.id,
-                        'description': self.ups_service_type.name,
-                        'quantity': 1,  # XXX
-                        'unit': self.carrier.carrier_product.sale_uom.id,
-                        'unit_price': shipment_cost,
-                        'shipment_cost': shipment_cost,
-                        'amount': shipment_cost,
-                        'taxes': [],
-                        'sequence': 9999,  # XXX
-                    }]),
-                    ('delete', [
-                        line for line in self.lines if line.shipment_cost
-                    ]),
-                ]
-            })
+            self.add_shipping_line(
+                shipment_cost,
+                "%s - %s" % (
+                    self.carrier.party.name, self.ups_service_type.name
+                )
+            )
 
     @classmethod
     def quote(cls, sales):
