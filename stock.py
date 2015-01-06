@@ -9,6 +9,8 @@ from decimal import Decimal, ROUND_UP
 import base64
 from lxml import etree
 
+from lxml.builder import E
+from ups.rating_package import RatingService
 from ups.shipping_package import ShipmentConfirm, ShipmentAccept
 from ups.base import PyUPSException
 from trytond.model import fields, ModelView
@@ -238,6 +240,83 @@ class ShipmentOut:
             )
         return charges, currency
 
+    def _get_ship_from_address(self):
+        """
+        Usually the warehouse from which you ship
+        """
+        return self.warehouse.address
+
+    def _get_ups_rate_from_rated_shipment(cls, rated_shipment):
+        """
+        The rated_shipment is an xml container in the response which has the
+        standard rates and negotiated rates. This method should extract the
+        value and return it with the currency
+        """
+        Currency = Pool().get('currency.currency')
+        UPSConfiguration = Pool().get('ups.configuration')
+
+        ups_config = UPSConfiguration(1)
+
+        currency, = Currency.search([
+            ('code', '=', str(rated_shipment.TotalCharges.CurrencyCode))
+        ])
+        if ups_config.negotiated_rates and \
+                hasattr(rated_shipment, 'NegotiatedRates'):
+            # If there are negotiated rates return that instead
+            charges = rated_shipment.NegotiatedRates.NetSummaryCharges
+            charges = currency.round(Decimal(
+                str(charges.GrandTotal.MonetaryValue)
+            ))
+        else:
+            charges = currency.round(
+                Decimal(str(rated_shipment.TotalCharges.MonetaryValue))
+            )
+        return charges, currency
+
+    def _get_rate_request_xml(self, mode='rate'):
+        """
+        Return the E builder object with the rate fetching request
+
+        :param mode: 'rate' - to fetch rate of current shipment and selected
+                              package type
+                     'shop' - to get a rates list
+        """
+        UPSConfiguration = Pool().get('ups.configuration')
+
+        ups_config = UPSConfiguration(1)
+
+        assert mode in ('rate', 'shop'), "Mode should be 'rate' or 'shop'"
+
+        if mode == 'rate' and not self.ups_service_type:
+            self.raise_user_error('ups_service_type_missing')
+
+        shipment_args = self._get_ups_packages()
+
+        shipment_args.extend([
+            self.warehouse.address.to_ups_shipper(),        # Shipper
+            self.delivery_address.to_ups_to_address(),      # Ship to
+            self._get_ship_from_address().to_ups_from_address(),   # Ship from
+
+        ])
+
+        if ups_config.negotiated_rates:
+            shipment_args.append(
+                RatingService.rate_information_type(negotiated=True)
+            )
+
+        if mode == 'rate':
+            # TODO: handle ups_saturday_delivery
+            shipment_args.append(
+                RatingService.service_type(Code=self.ups_service_type.code)
+            )
+            request_option = E.RequestOption('Rate')
+        else:
+            request_option = E.RequestOption('Shop')
+
+        return RatingService.rating_request_type(
+            E.Shipment(*shipment_args), RequestOption=request_option
+        )
+
     def get_ups_shipping_cost(self):
         """Returns the calculated shipping cost as sent by ups
 
@@ -249,36 +328,36 @@ class ShipmentOut:
         ups_config = UPSConfiguration(1)
         carrier, = Carrier.search(['carrier_cost_method', '=', 'ups'])
 
-        shipment_confirm = self._get_shipment_confirm_xml()
-        shipment_confirm_instance = ups_config.api_instance(call="confirm")
+        rate_request = self._get_rate_request_xml()
+        rate_api = ups_config.api_instance(call="rate")
 
         # Logging.
         ups_config.logger.debug(
-            'Making Shipment Confirm Request for'
+            'Making Rate API Request for'
             'Shipment ID: {0} and Carrier ID: {1}'
             .format(self.id, carrier.id)
         )
         ups_config.logger.debug(
-            '--------SHIPMENT CONFIRM REQUEST--------\n%s'
+            '--------RATE API REQUEST--------\n%s'
             '\n--------END REQUEST--------'
-            % etree.tostring(shipment_confirm, pretty_print=True)
+            % etree.tostring(rate_request, pretty_print=True)
         )
 
         try:
-            response = shipment_confirm_instance.request(shipment_confirm)
-
-            # Logging.
+            response = rate_api.request(rate_request)
             ups_config.logger.debug(
-                '--------SHIPMENT CONFIRM RESPONSE--------\n%s'
+                '--------RATE API RESPONSE--------\n%s'
                 '\n--------END RESPONSE--------'
                 % etree.tostring(response, pretty_print=True)
             )
         except PyUPSException, e:
             self.raise_user_error(unicode(e[0]))
 
-        shipping_cost, currency = self._get_ups_shipment_cost(response)
+        shipment_cost, currency = self._get_ups_rate_from_rated_shipment(
+            response.RatedShipment
+        )
 
-        return shipping_cost, currency.id
+        return shipment_cost, currency.id
 
     def make_ups_labels(self):
         """
