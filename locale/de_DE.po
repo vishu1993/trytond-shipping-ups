@@ -1,0 +1,463 @@
+# 
+msgid ""
+msgstr "Content-Type: text/plain; charset=utf-8\n"
+
+msgctxt "error:party.address:"
+msgid "%s is missing in %s."
+msgstr "% fehlt in %s"
+
+msgctxt "error:stock.shipment.out:"
+msgid "Carrier for selected shipment is not UPS"
+msgstr "Der Frachtführer des ausgewählten Lieferpostens ist nicht UPS"
+
+msgctxt "error:stock.shipment.out:"
+msgid ""
+"Labels can only be generated when the shipment is in Packed or Done states "
+"only"
+msgstr ""
+"Etiketten können nur für Lieferposten mit Status 'Gepackt' oder 'Erledigt' "
+"erstellt werden"
+
+msgctxt "error:stock.shipment.out:"
+msgid "Tracking Number is already present for this shipment."
+msgstr "Trackingnummer bereits vorhanden für diesen Lieferposten"
+
+msgctxt "error:stock.shipment.out:"
+msgid "UPS service type missing."
+msgstr "UPS Diensttyp fehlt"
+
+msgctxt "error:ups.configuration:"
+msgid "UPS settings on UPS configuration are incomplete."
+msgstr "UPS Einstellungen unvollständig"
+
+msgctxt "field:sale.configuration,ups_package_type:"
+msgid "Package Content Type"
+msgstr "Paket Inhaltstyp"
+
+msgctxt "field:sale.configuration,ups_service_type:"
+msgid "Default UPS Service Type"
+msgstr "Standard UPS Servicetyp"
+
+msgctxt "field:sale.sale,is_ups_shipping:"
+msgid "Is Shipping"
+msgstr "UPS Versand"
+
+msgctxt "field:sale.sale,ups_package_type:"
+msgid "Package Content Type"
+msgstr "Paket Inhaltstyp"
+
+msgctxt "field:sale.sale,ups_saturday_delivery:"
+msgid "Is Saturday Delivery"
+msgstr "Samstagslieferung"
+
+msgctxt "field:sale.sale,ups_service_type:"
+msgid "UPS Service Type"
+msgstr "UPS Diensttyp"
+
+msgctxt "field:shipping.label.ups,id:"
+msgid "ID"
+msgstr "ID"
+
+msgctxt "field:shipping.label.ups,ups_package_type:"
+msgid "Package Content Type"
+msgstr "Paket Inhaltstyp"
+
+msgctxt "field:shipping.label.ups,ups_saturday_delivery:"
+msgid "Is Saturday Delivery ?"
+msgstr "Samstagslieferung"
+
+msgctxt "field:shipping.label.ups,ups_service_type:"
+msgid "UPS Service Type"
+msgstr "UPS Diensttyp"
+
+msgctxt "field:stock.shipment.out,is_ups_shipping:"
+msgid "Is Shipping"
+msgstr "UPS Versand"
+
+msgctxt "field:stock.shipment.out,ups_package_type:"
+msgid "Package Content Type"
+msgstr "Paket Inhaltstyp"
+
+msgctxt "field:stock.shipment.out,ups_saturday_delivery:"
+msgid "Is Saturday Delivery"
+msgstr "Samstagslieferung"
+
+msgctxt "field:stock.shipment.out,ups_service_type:"
+msgid "UPS Service Type"
+msgstr "UPS Diensttyp"
+
+msgctxt "field:ups.configuration,create_date:"
+msgid "Create Date"
+msgstr "Erstellungsdatum"
+
+msgctxt "field:ups.configuration,create_uid:"
+msgid "Create User"
+msgstr "Erstellt durch"
+
+msgctxt "field:ups.configuration,id:"
+msgid "ID"
+msgstr "ID"
+
+msgctxt "field:ups.configuration,is_test:"
+msgid "Is Test"
+msgstr "Test"
+
+msgctxt "field:ups.configuration,length_uom:"
+msgid "Length UOM"
+msgstr "Maßeinheit Länge"
+
+msgctxt "field:ups.configuration,license_key:"
+msgid "UPS License Key"
+msgstr "UPS Lizenz-Schlüssel"
+
+msgctxt "field:ups.configuration,negotiated_rates:"
+msgid "Use negotiated rates"
+msgstr "Verhandelte Preise anwenden"
+
+msgctxt "field:ups.configuration,password:"
+msgid "UPS User Password"
+msgstr "UPS Nutzer Passwort"
+
+msgctxt "field:ups.configuration,rec_name:"
+msgid "Name"
+msgstr "Name"
+
+msgctxt "field:ups.configuration,shipper_no:"
+msgid "UPS Shipper Number"
+msgstr "UPS Versendernummer"
+
+msgctxt "field:ups.configuration,uom_system:"
+msgid "UOM System"
+msgstr "Maßeinheitensystem"
+
+msgctxt "field:ups.configuration,user_id:"
+msgid "UPS User Id"
+msgstr "UPS Nutzer ID"
+
+msgctxt "field:ups.configuration,weight_uom:"
+msgid "Weight UOM"
+msgstr "Maßeinheit Gewicht"
+
+msgctxt "field:ups.configuration,weight_uom_code:"
+msgid "Weight UOM code"
+msgstr "Maßeinheit Gewicht"
+
+msgctxt "field:ups.configuration,write_date:"
+msgid "Write Date"
+msgstr "Zuletzt geändert"
+
+msgctxt "field:ups.configuration,write_uid:"
+msgid "Write User"
+msgstr "Letzte Änderung durch"
+
+msgctxt "field:ups.service,active:"
+msgid "Active"
+msgstr "Aktiv"
+
+msgctxt "field:ups.service,code:"
+msgid "Service Code"
+msgstr "Service Code"
+
+msgctxt "field:ups.service,create_date:"
+msgid "Create Date"
+msgstr "Erstellungsdatum"
+
+msgctxt "field:ups.service,create_uid:"
+msgid "Create User"
+msgstr "Erstellt durch"
+
+msgctxt "field:ups.service,display_name:"
+msgid "Display Name"
+msgstr "Anzeigename"
+
+msgctxt "field:ups.service,id:"
+msgid "ID"
+msgstr "ID"
+
+msgctxt "field:ups.service,name:"
+msgid "Name"
+msgstr "Name"
+
+msgctxt "field:ups.service,rec_name:"
+msgid "Name"
+msgstr "Name"
+
+msgctxt "field:ups.service,write_date:"
+msgid "Write Date"
+msgstr "Zuletzt geändert"
+
+msgctxt "field:ups.service,write_uid:"
+msgid "Write User"
+msgstr "Letzte Änderung durch"
+
+msgctxt "model:ir.action,name:act_ups_configuration_form"
+msgid "UPS Configuration"
+msgstr "UPS Einstellungen"
+
+msgctxt "model:ir.action,name:act_ups_service_form"
+msgid "UPS Services"
+msgstr "UPS Dienste"
+
+msgctxt "model:ir.action.act_window.domain,name:act_ups_service_active"
+msgid "Active"
+msgstr "Aktiv"
+
+msgctxt "model:ir.action.act_window.domain,name:act_ups_service_disabled"
+msgid "Disabled"
+msgstr "Deaktiviert"
+
+msgctxt "model:ir.ui.menu,name:menu_ups_service"
+msgid "UPS Services"
+msgstr "UPS Dienste"
+
+msgctxt "model:ir.ui.menu,name:ups_config"
+msgid "UPS Configuration"
+msgstr "UPS Einstellungen"
+
+msgctxt "model:shipping.label.ups,name:"
+msgid "Generate Labels"
+msgstr "Etiketten erzeugen"
+
+msgctxt "model:ups.configuration,name:"
+msgid "Configuration settings for UPS."
+msgstr "UPS Einstellungen"
+
+msgctxt "model:ups.service,name:"
+msgid "UPS Service"
+msgstr "UPS Dienst"
+
+msgctxt "selection:carrier,carrier_cost_method:"
+msgid "UPS"
+msgstr "UPS"
+
+msgctxt "selection:sale.configuration,ups_package_type:"
+msgid "Customer Supplied Package"
+msgstr "Verpackung durch Kunde bereitgestellt"
+
+msgctxt "selection:sale.configuration,ups_package_type:"
+msgid "Large Express Box"
+msgstr "Große Express Box"
+
+msgctxt "selection:sale.configuration,ups_package_type:"
+msgid "Medium Express Box"
+msgstr "Mittlere Express Box"
+
+msgctxt "selection:sale.configuration,ups_package_type:"
+msgid "PAK"
+msgstr "PAK"
+
+msgctxt "selection:sale.configuration,ups_package_type:"
+msgid "Pallet"
+msgstr "Palette"
+
+msgctxt "selection:sale.configuration,ups_package_type:"
+msgid "Small Express Box"
+msgstr "Kleine Express Box"
+
+msgctxt "selection:sale.configuration,ups_package_type:"
+msgid "Tube"
+msgstr "Röhre"
+
+msgctxt "selection:sale.configuration,ups_package_type:"
+msgid "UPS 10KG Box"
+msgstr "UPS 10KG Box"
+
+msgctxt "selection:sale.configuration,ups_package_type:"
+msgid "UPS 25KG Box"
+msgstr "UPS 25KG Box"
+
+msgctxt "selection:sale.configuration,ups_package_type:"
+msgid "UPS Express Box"
+msgstr "UPS Express Box"
+
+msgctxt "selection:sale.configuration,ups_package_type:"
+msgid "UPS Letter"
+msgstr "UPS Letter"
+
+msgctxt "selection:sale.sale,ups_package_type:"
+msgid "Customer Supplied Package"
+msgstr "Verpackung durch Kunde bereitgestellt"
+
+msgctxt "selection:sale.sale,ups_package_type:"
+msgid "Large Express Box"
+msgstr "Große Express Box"
+
+msgctxt "selection:sale.sale,ups_package_type:"
+msgid "Medium Express Box"
+msgstr "Mittlere Express Box"
+
+msgctxt "selection:sale.sale,ups_package_type:"
+msgid "PAK"
+msgstr "PAK"
+
+msgctxt "selection:sale.sale,ups_package_type:"
+msgid "Pallet"
+msgstr "Palette"
+
+msgctxt "selection:sale.sale,ups_package_type:"
+msgid "Small Express Box"
+msgstr "Kleine Express Box"
+
+msgctxt "selection:sale.sale,ups_package_type:"
+msgid "Tube"
+msgstr "Röhre"
+
+msgctxt "selection:sale.sale,ups_package_type:"
+msgid "UPS 10KG Box"
+msgstr "UPS 10KG Box"
+
+msgctxt "selection:sale.sale,ups_package_type:"
+msgid "UPS 25KG Box"
+msgstr "UPS 25KG Box"
+
+msgctxt "selection:sale.sale,ups_package_type:"
+msgid "UPS Express Box"
+msgstr "UPS Express Box"
+
+msgctxt "selection:sale.sale,ups_package_type:"
+msgid "UPS Letter"
+msgstr "UPS Letter"
+
+msgctxt "selection:shipping.label.ups,ups_package_type:"
+msgid "Customer Supplied Package"
+msgstr "Verpackung durch Kunde bereitgestellt"
+
+msgctxt "selection:shipping.label.ups,ups_package_type:"
+msgid "Large Express Box"
+msgstr "Große Express Box"
+
+msgctxt "selection:shipping.label.ups,ups_package_type:"
+msgid "Medium Express Box"
+msgstr "Mittlere Express Box"
+
+msgctxt "selection:shipping.label.ups,ups_package_type:"
+msgid "PAK"
+msgstr "PAK"
+
+msgctxt "selection:shipping.label.ups,ups_package_type:"
+msgid "Pallet"
+msgstr "Palette"
+
+msgctxt "selection:shipping.label.ups,ups_package_type:"
+msgid "Small Express Box"
+msgstr "Kleine Express Box"
+
+msgctxt "selection:shipping.label.ups,ups_package_type:"
+msgid "Tube"
+msgstr "Röhre"
+
+msgctxt "selection:shipping.label.ups,ups_package_type:"
+msgid "UPS 10KG Box"
+msgstr "UPS 10KG Box"
+
+msgctxt "selection:shipping.label.ups,ups_package_type:"
+msgid "UPS 25KG Box"
+msgstr "UPS 25KG Box"
+
+msgctxt "selection:shipping.label.ups,ups_package_type:"
+msgid "UPS Express Box"
+msgstr "UPS Express Box"
+
+msgctxt "selection:shipping.label.ups,ups_package_type:"
+msgid "UPS Letter"
+msgstr "UPS Letter"
+
+msgctxt "selection:stock.shipment.out,ups_package_type:"
+msgid "Customer Supplied Package"
+msgstr "Verpackung durch Kunde bereitgestellt"
+
+msgctxt "selection:stock.shipment.out,ups_package_type:"
+msgid "Large Express Box"
+msgstr "Große Express Box"
+
+msgctxt "selection:stock.shipment.out,ups_package_type:"
+msgid "Medium Express Box"
+msgstr "Mittlere Express Box"
+
+msgctxt "selection:stock.shipment.out,ups_package_type:"
+msgid "PAK"
+msgstr "PAK"
+
+msgctxt "selection:stock.shipment.out,ups_package_type:"
+msgid "Pallet"
+msgstr "Palette"
+
+msgctxt "selection:stock.shipment.out,ups_package_type:"
+msgid "Small Express Box"
+msgstr "Kleine Express Box"
+
+msgctxt "selection:stock.shipment.out,ups_package_type:"
+msgid "Tube"
+msgstr "Röhre"
+
+msgctxt "selection:stock.shipment.out,ups_package_type:"
+msgid "UPS 10KG Box"
+msgstr "UPS 10KG Box"
+
+msgctxt "selection:stock.shipment.out,ups_package_type:"
+msgid "UPS 25KG Box"
+msgstr "UPS 25KG Box"
+
+msgctxt "selection:stock.shipment.out,ups_package_type:"
+msgid "UPS Express Box"
+msgstr "UPS Express Box"
+
+msgctxt "selection:stock.shipment.out,ups_package_type:"
+msgid "UPS Letter"
+msgstr "UPS Letter"
+
+msgctxt "selection:ups.configuration,uom_system:"
+msgid "English Units Of Measurement"
+msgstr "Englische Maßeinheiten"
+
+msgctxt "selection:ups.configuration,uom_system:"
+msgid "Metric Units Of Measurement"
+msgstr "Metrische Maßeinheiten"
+
+msgctxt "view:sale.configuration:"
+msgid "UPS Defaults"
+msgstr "UPS Standardwerte"
+
+msgctxt "view:sale.sale:"
+msgid "UPS"
+msgstr "UPS"
+
+msgctxt "view:sale.sale:"
+msgid "Update Shipment Cost"
+msgstr "Lieferkosten aktualisieren"
+
+msgctxt "view:shipping.label.ups:"
+msgid "UPS Configuration"
+msgstr "UPS Einstellungen"
+
+msgctxt "view:stock.shipment.out:"
+msgid "UPS"
+msgstr "UPS"
+
+msgctxt "view:ups.configuration:"
+msgid "Account Crendentials"
+msgstr "Konto Zugangsdaten"
+
+msgctxt "view:ups.configuration:"
+msgid "UPS Configuration"
+msgstr "UPS Einstellungen"
+
+msgctxt "view:ups.service:"
+msgid "UPS Service"
+msgstr "UPS Dienst"
+
+msgctxt "view:ups.service:"
+msgid "UPS Services"
+msgstr "UPS Dienste"
+
+msgctxt "wizard_button:shipping.label,start,end:"
+msgid "Cancel"
+msgstr "Abbrechen"
+
+msgctxt "wizard_button:shipping.label,ups_config,generate:"
+msgid "Continue"
+msgstr "Weiter"
+
+msgctxt "wizard_button:shipping.label,ups_config,start:"
+msgid "Back"
+msgstr "Zurück"
