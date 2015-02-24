@@ -86,7 +86,7 @@ MODULE2PREFIX = {
 }
 
 MODULE = "shipping_ups"
-PREFIX = "trytond"
+PREFIX = "openlabs"
 for dep in info.get('depends', []):
     if not re.match(r'(ir|res|webdav)(\W|$)', dep):
         requires.append(
