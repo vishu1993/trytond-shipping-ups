@@ -5,15 +5,16 @@ Make UPS Shipping labels directly from customer shipments.
 
 .. image:: https://travis-ci.org/openlabs/trytond-shipping-ups.svg?branch=develop
   :target: https://travis-ci.org/openlabs/trytond-shipping-ups
-
+  :alt: Build Status
 .. image:: https://pypip.in/download/openlabs_shipping_ups/badge.svg
   :target: https://pypi.python.org/pypi/openlabs_shipping_ups/
-
+  :alt: Downloads
 .. image:: https://pypip.in/version/openlabs_shipping_ups/badge.svg
   :target: https://pypi.python.org/pypi/openlabs_shipping_ups/
-
+  :alt: Latest Version
 .. image:: https://pypip.in/status/openlabs_shipping_ups/badge.svg
   :target: https://pypi.python.org/pypi/openlabs_shipping_ups/
+  :alt: Development Status
 
 History
 -------
