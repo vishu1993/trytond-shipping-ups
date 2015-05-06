@@ -12,7 +12,6 @@ from sale import Configuration, Sale
 from stock import (
     ShipmentOut, StockMove, ShippingUps, GenerateShippingLabel
 )
-from configuration import UPSConfiguration
 
 
 def register():
@@ -21,7 +20,6 @@ def register():
         Carrier,
         CarrierConfig,
         UPSService,
-        UPSConfiguration,
         Configuration,
         Sale,
         StockMove,

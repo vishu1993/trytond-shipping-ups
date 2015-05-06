@@ -8,6 +8,7 @@
 from decimal import Decimal, ROUND_UP
 import base64
 from lxml import etree
+from logbook import Logger
 
 from ups.shipping_package import ShipmentConfirm, ShipmentAccept
 from ups.base import PyUPSException
@@ -29,6 +30,7 @@ __all__ = [
 STATES = {
     'readonly': Eval('state') == 'done',
 }
+logger = Logger('trytond_ups')
 
 
 class ShipmentOut:
@@ -54,12 +56,8 @@ class ShipmentOut:
         """
         Returns uom for ups
         """
-        UPSConfiguration = Pool().get('ups.configuration')
-
-        weight_uom = UPSConfiguration(1).weight_uom
-
-        if self.is_ups_shipping and weight_uom:
-            return weight_uom
+        if self.is_ups_shipping and self.carrier.ups_weight_uom:
+            return self.carrier.ups_weight_uom
 
         return super(ShipmentOut, self)._get_weight_uom()
 
@@ -110,9 +108,8 @@ class ShipmentOut:
         """
         Return UPS Packages XML
         """
-        UPSConfiguration = Pool().get('ups.configuration')
+        carrier = self.carrier
 
-        ups_config = UPSConfiguration(1)
         package_type = ShipmentConfirm.packaging_type(
             Code=self.ups_package_type
         )  # FIXME: Support multiple packaging type
@@ -122,7 +119,7 @@ class ShipmentOut:
         )
         package_weight = ShipmentConfirm.package_weight_type(
             Weight=str(weight),
-            Code=ups_config.weight_uom_code,
+            Code=carrier.ups_weight_uom_code,
         )
         package_service_options = ShipmentConfirm.package_service_options_type(
             ShipmentConfirm.insured_value_type(MonetaryValue='0')
@@ -150,15 +147,14 @@ class ShipmentOut:
         Return XML of shipment for shipment_confirm
         """
         Company = Pool().get('company.company')
-        UPSConfiguration = Pool().get('ups.configuration')
 
-        ups_config = UPSConfiguration(1)
+        carrier = self.carrier
         if not self.ups_service_type:
             self.raise_user_error('ups_service_type_missing')
 
         payment_info_prepaid = \
             ShipmentConfirm.payment_information_prepaid_type(
-                AccountNumber=ups_config.shipper_no
+                AccountNumber=carrier.ups_shipper_no
             )
         payment_info = ShipmentConfirm.payment_information_type(
             payment_info_prepaid)
@@ -172,13 +168,13 @@ class ShipmentOut:
         ])
 
         shipment_args = [
-            self.warehouse.address.to_ups_shipper(),
+            self.warehouse.address.to_ups_shipper(carrier=carrier),
             self.delivery_address.to_ups_to_address(),
             self.warehouse.address.to_ups_from_address(),
             ShipmentConfirm.service_type(Code=self.ups_service_type.code),
             payment_info, shipment_service,
         ]
-        if ups_config.negotiated_rates:
+        if carrier.ups_negotiated_rates:
             shipment_args.append(
                 ShipmentConfirm.rate_information_type(negotiated=True)
             )
@@ -207,16 +203,14 @@ class ShipmentOut:
         return shipment_confirm
 
     @classmethod
-    def _get_ups_shipment_cost(cls, shipment_confirm):
+    def _get_ups_shipment_cost(cls, shipment_confirm, carrier):
         """
         The shipment_confirm is an xml container in the response which has the
         standard rates and negotiated rates. This method should extract the
         value and return it with the currency
         """
         Currency = Pool().get('currency.currency')
-        UPSConfiguration = Pool().get('ups.configuration')
 
-        ups_config = UPSConfiguration(1)
         shipment_charges = shipment_confirm.ShipmentCharges
 
         currency, = Currency.search([
@@ -225,7 +219,7 @@ class ShipmentOut:
             ))
         ])
 
-        if ups_config.negotiated_rates and \
+        if carrier.ups_negotiated_rates and \
                 hasattr(shipment_confirm, 'NegotiatedRates'):
             # If there are negotiated rates return that instead
             charges = shipment_confirm.NegotiatedRates.NetSummaryCharges
@@ -243,22 +237,18 @@ class ShipmentOut:
 
         :returns: The shipping cost with currency
         """
-        UPSConfiguration = Pool().get('ups.configuration')
-        Carrier = Pool().get('carrier')
-
-        ups_config = UPSConfiguration(1)
-        carrier, = Carrier.search(['carrier_cost_method', '=', 'ups'])
+        carrier = self.carrier
 
         shipment_confirm = self._get_shipment_confirm_xml()
-        shipment_confirm_instance = ups_config.api_instance(call="confirm")
+        shipment_confirm_instance = carrier.ups_api_instance(call="confirm")
 
         # Logging.
-        ups_config.logger.debug(
+        logger.debug(
             'Making Shipment Confirm Request for'
             'Shipment ID: {0} and Carrier ID: {1}'
             .format(self.id, carrier.id)
         )
-        ups_config.logger.debug(
+        logger.debug(
             '--------SHIPMENT CONFIRM REQUEST--------\n%s'
             '\n--------END REQUEST--------'
             % etree.tostring(shipment_confirm, pretty_print=True)
@@ -268,7 +258,7 @@ class ShipmentOut:
             response = shipment_confirm_instance.request(shipment_confirm)
 
             # Logging.
-            ups_config.logger.debug(
+            logger.debug(
                 '--------SHIPMENT CONFIRM RESPONSE--------\n%s'
                 '\n--------END RESPONSE--------'
                 % etree.tostring(response, pretty_print=True)
@@ -276,7 +266,8 @@ class ShipmentOut:
         except PyUPSException, e:
             self.raise_user_error(unicode(e[0]))
 
-        shipping_cost, currency = self._get_ups_shipment_cost(response)
+        shipping_cost, currency = self._get_ups_shipment_cost(
+            response, carrier=carrier)
 
         return shipping_cost, currency.id
 
@@ -287,10 +278,9 @@ class ShipmentOut:
         :return: Tracking number as string
         """
         Attachment = Pool().get('ir.attachment')
-        UPSConfiguration = Pool().get('ups.configuration')
         Currency = Pool().get('currency.currency')
 
-        ups_config = UPSConfiguration(1)
+        carrier = self.carrier
         if self.state not in ('packed', 'done'):
             self.raise_user_error('invalid_state')
 
@@ -301,15 +291,15 @@ class ShipmentOut:
             self.raise_user_error('tracking_number_already_present')
 
         shipment_confirm = self._get_shipment_confirm_xml()
-        shipment_confirm_instance = ups_config.api_instance(call="confirm")
+        shipment_confirm_instance = carrier.ups_api_instance(call="confirm")
 
         # Logging.
-        ups_config.logger.debug(
+        logger.debug(
             'Making Shipment Confirm Request for'
             'Shipment ID: {0} and Carrier ID: {1}'
             .format(self.id, self.carrier.id)
         )
-        ups_config.logger.debug(
+        logger.debug(
             '--------SHIPMENT CONFIRM REQUEST--------\n%s'
             '\n--------END REQUEST--------'
             % etree.tostring(shipment_confirm, pretty_print=True)
@@ -319,7 +309,7 @@ class ShipmentOut:
             response = shipment_confirm_instance.request(shipment_confirm)
 
             # Logging.
-            ups_config.logger.debug(
+            logger.debug(
                 '--------SHIPMENT CONFIRM RESPONSE--------\n%s'
                 '\n--------END RESPONSE--------'
                 % etree.tostring(response, pretty_print=True)
@@ -331,15 +321,15 @@ class ShipmentOut:
 
         shipment_accept = ShipmentAccept.shipment_accept_request_type(digest)
 
-        shipment_accept_instance = ups_config.api_instance(call="accept")
+        shipment_accept_instance = carrier.ups_api_instance(call="accept")
 
         # Logging.
-        ups_config.logger.debug(
+        logger.debug(
             'Making Shipment Accept Request for'
             'Shipment ID: {0} and Carrier ID: {1}'
             .format(self.id, self.carrier.id)
         )
-        ups_config.logger.debug(
+        logger.debug(
             '--------SHIPMENT ACCEPT REQUEST--------\n%s'
             '\n--------END REQUEST--------'
             % etree.tostring(shipment_accept, pretty_print=True)
@@ -349,7 +339,7 @@ class ShipmentOut:
             response = shipment_accept_instance.request(shipment_accept)
 
             # Logging.
-            ups_config.logger.debug(
+            logger.debug(
                 '--------SHIPMENT ACCEPT RESPONSE--------\n%s'
                 '\n--------END RESPONSE--------'
                 % etree.tostring(response, pretty_print=True)

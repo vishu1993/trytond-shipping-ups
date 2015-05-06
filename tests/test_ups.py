@@ -33,7 +33,6 @@ class TestUPS(unittest.TestCase):
         self.Address = POOL.get('party.address')
         self.Sale = POOL.get('sale.sale')
         self.SaleConfig = POOL.get('sale.configuration')
-        self.UPSConfiguration = POOL.get('ups.configuration')
         self.UPSService = POOL.get('ups.service')
         self.Product = POOL.get('product.product')
         self.Uom = POOL.get('product.uom')
@@ -224,18 +223,6 @@ class TestUPS(unittest.TestCase):
             'code': '02',
         }])
 
-        # UPS Configuration
-        self.UPSConfiguration.create([{
-            'license_key': os.environ['UPS_LICENSE_NO'],
-            'user_id': os.environ['UPS_USER_ID'],
-            'password': os.environ['UPS_PASSWORD'],
-            'shipper_no': os.environ['UPS_SHIPPER_NO'],
-            'is_test': True,
-            'uom_system': '01',
-        }])
-        self.CarrierConfig.create([{
-            'default_validation_provider': 'ups',
-        }])
         self.SaleConfig.create([{
             'ups_service_type': self.ups_service.id,
         }])
@@ -324,6 +311,16 @@ class TestUPS(unittest.TestCase):
             'party': carrier_party.id,
             'carrier_product': carrier_product.id,
             'carrier_cost_method': 'ups',
+            'ups_license_key': os.environ['UPS_LICENSE_NO'],
+            'ups_user_id': os.environ['UPS_USER_ID'],
+            'ups_password': os.environ['UPS_PASSWORD'],
+            'ups_shipper_no': os.environ['UPS_SHIPPER_NO'],
+            'ups_is_test': True,
+            'ups_uom_system': '01',
+        }])
+
+        self.CarrierConfig.create([{
+            'default_validation_carrier': self.carrier.id,
         }])
 
         self.sale_party, = self.Party.create([{
@@ -585,6 +582,7 @@ class TestUPS(unittest.TestCase):
                     'party': self.sale_party.id,
                     'invoice_address': self.sale_party.addresses[0].id,
                     'shipment_address': self.sale_party.addresses[0].id,
+                    'carrier': self.carrier.id,
                     'ups_service_type': self.ups_service.id,
                     'ups_saturday_delivery': True,
                     'lines': [
