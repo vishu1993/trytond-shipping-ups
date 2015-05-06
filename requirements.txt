@@ -1,6 +1,6 @@
 psycopg2
 
-https://github.com/openlabs/trytond-shipping/archive/develop.tar.gz
+https://github.com/openlabs/trytond-shipping/archive/stock-package.tar.gz
 
 # Install this package itself
 .
