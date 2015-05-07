@@ -2,7 +2,7 @@
 """
     stock.py
 
-    :copyright: (c) 2014 by Openlabs Technologies & Consulting (P) Limited
+    :copyright: (c) 2014-2015 by Openlabs Technologies & Consulting (P) Limited
     :license: BSD, see LICENSE for more details.
 """
 from decimal import Decimal, ROUND_UP
@@ -24,7 +24,7 @@ from .sale import UPS_PACKAGE_TYPES
 __metaclass__ = PoolMeta
 __all__ = [
     'ShipmentOut', 'StockMove', 'ShippingUps',
-    'GenerateShippingLabel'
+    'GenerateShippingLabel', 'Package'
 ]
 
 STATES = {
@@ -98,6 +98,7 @@ class ShipmentOut:
                 'Tracking Number is already present for this shipment.',
             'invalid_state': 'Labels can only be generated when the '
                 'shipment is in Packed or Done states only',
+            'no_packages': 'Shipment %s has no packages',
         })
         cls.__rpc__.update({
             'make_ups_labels': RPC(readonly=False, instantiate=0),
@@ -108,28 +109,11 @@ class ShipmentOut:
         """
         Return UPS Packages XML
         """
-        carrier = self.carrier
+        package_containers = []
 
-        package_type = ShipmentConfirm.packaging_type(
-            Code=self.ups_package_type
-        )  # FIXME: Support multiple packaging type
-
-        weight = self.package_weight.quantize(
-            Decimal('.01'), rounding=ROUND_UP
-        )
-        package_weight = ShipmentConfirm.package_weight_type(
-            Weight=str(weight),
-            Code=carrier.ups_weight_uom_code,
-        )
-        package_service_options = ShipmentConfirm.package_service_options_type(
-            ShipmentConfirm.insured_value_type(MonetaryValue='0')
-        )
-        package_container = ShipmentConfirm.package_type(
-            package_type,
-            package_weight,
-            package_service_options
-        )
-        return [package_container]
+        for package in self.packages:
+            package_containers.append(package.get_ups_package_container())
+        return package_containers
 
     def _get_carrier_context(self):
         "Pass shipment in the context"
@@ -290,6 +274,9 @@ class ShipmentOut:
         if self.tracking_number:
             self.raise_user_error('tracking_number_already_present')
 
+        if not self.packages:
+            self.raise_user_error("no_packages", error_args=(self.id,))
+
         shipment_confirm = self._get_shipment_confirm_xml()
         shipment_confirm_instance = carrier.ups_api_instance(call="confirm")
 
@@ -347,38 +334,51 @@ class ShipmentOut:
         except PyUPSException, e:
             self.raise_user_error(unicode(e[0]))
 
-        if len(response.ShipmentResults.PackageResults) > 1:
-            self.raise_user_error('ups_multiple_packages_not_supported')
-
         shipment_res = response.ShipmentResults
-        package, = shipment_res.PackageResults
-        tracking_number = package.TrackingNumber.pyval
+        shipment_identification_number = \
+            shipment_res.ShipmentIdentificationNumber.pyval
 
         currency, = Currency.search([
             ('code', '=', str(
                 shipment_res.ShipmentCharges.TotalCharges.CurrencyCode
             ))
         ])
+
         shipping_cost = currency.round(Decimal(
             str(shipment_res.ShipmentCharges.TotalCharges.MonetaryValue)
         ))
         self.__class__.write([self], {
-            'tracking_number': unicode(tracking_number),
             'cost': shipping_cost,
             'cost_currency': currency,
+            'tracking_number': shipment_identification_number
         })
 
-        Attachment.create([{
-            'name': "%s_%s_.png" % (
-                tracking_number,
-                shipment_res.ShipmentIdentificationNumber.pyval
-            ),
-            'data': buffer(base64.decodestring(
-                package.LabelImage.GraphicImage.pyval
-            )),
-            'resource': '%s,%s' % (self.__name__, self.id)
-        }])
-        return tracking_number
+        index = 0
+        for package in response.ShipmentResults.PackageResults:
+            tracking_number = package.TrackingNumber.pyval
+
+            # The package results do not hold any info to identify which
+            # result if for what package, instead it returns the results
+            # in the order in which the packages were sent in request, so
+            # we read the result in the same order.
+            stock_package = self.packages[index]
+            stock_package.tracking_number = unicode(tracking_number)
+            stock_package.save()
+
+            index += 1
+
+            Attachment.create([{
+                'name': "%s_%s_%s.png" % (
+                    tracking_number,
+                    shipment_identification_number,
+                    stock_package.code,
+                ),
+                'data': buffer(base64.decodestring(
+                    package.LabelImage.GraphicImage.pyval
+                )),
+                'resource': '%s,%s' % (self.__name__, self.id)
+            }])
+        return shipment_identification_number
 
     @fields.depends('ups_service_type')
     def on_change_carrier(self):
@@ -475,3 +475,36 @@ class GenerateShippingLabel(Wizard):
                 self.ups_config.ups_saturday_delivery
 
         return shipment
+
+
+class Package:
+    __name__ = 'stock.package'
+
+    def get_ups_package_container(self):
+        """
+        Return UPS package container for a single package
+        """
+        shipment = self.shipment
+        carrier = shipment.carrier
+
+        package_type = ShipmentConfirm.packaging_type(
+            Code=shipment.ups_package_type
+        )  # FIXME: Support multiple packaging type
+
+        weight = self.package_weight.quantize(
+            Decimal('.01'), rounding=ROUND_UP
+        )
+
+        package_weight = ShipmentConfirm.package_weight_type(
+            Weight=str(weight),
+            Code=carrier.ups_weight_uom_code,
+        )
+        package_service_options = ShipmentConfirm.package_service_options_type(
+            ShipmentConfirm.insured_value_type(MonetaryValue='0')
+        )
+        package_container = ShipmentConfirm.package_type(
+            package_type,
+            package_weight,
+            package_service_options
+        )
+        return package_container
