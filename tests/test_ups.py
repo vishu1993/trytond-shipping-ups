@@ -317,6 +317,7 @@ class TestUPS(unittest.TestCase):
             'ups_shipper_no': os.environ['UPS_SHIPPER_NO'],
             'ups_is_test': True,
             'ups_uom_system': '01',
+            'currency': self.currency.id,
         }])
 
         self.CarrierConfig.create([{
