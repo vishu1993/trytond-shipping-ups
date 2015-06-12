@@ -215,9 +215,9 @@ class Address:
         """
         Subdivision = Pool().get('country.subdivision')
         Address = Pool().get('party.address')
-        CarrierConfig = Pool().get('carrier.configuration')
+        PartyConfiguration = Pool().get('party.configuration')
 
-        config = CarrierConfig(1)
+        config = PartyConfiguration(1)
         carrier = config.default_validation_carrier
 
         if not carrier:

@@ -15,7 +15,7 @@ from ups.shipping_package import ShipmentConfirm, ShipmentAccept, ShipmentVoid
 from ups.rating_package import RatingService
 from ups.address_validation import AddressValidation
 
-__all__ = ['Carrier', 'UPSService', 'CarrierConfig']
+__all__ = ['Carrier', 'UPSService', 'PartyConfiguration']
 __metaclass__ = PoolMeta
 
 SERVICE_STATES = {
@@ -25,13 +25,13 @@ SERVICE_STATES = {
 SERVICE_DEPENDS = ['system_generated']
 
 
-class CarrierConfig:
-    "Carrier Configuration"
-    __name__ = 'carrier.configuration'
+class PartyConfiguration:
+    "Party Configuration"
+    __name__ = 'party.configuration'
 
     @classmethod
     def get_carrier_methods_for_domain(cls):
-        res = super(CarrierConfig, cls).get_carrier_methods_for_domain()
+        res = super(PartyConfiguration, cls).get_carrier_methods_for_domain()
         if 'ups' not in res:
             res.append('ups')
         return res
